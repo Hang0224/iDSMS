@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iDSMS Remote Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-primary { background: #3b82f6; transition: 0.3s; }
+        .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- 登录与忘记密码模块 -->
+    <div id="auth-section" class="w-full max-w-md glass p-8 rounded-3xl shadow-2xl">
+        <div id="login-form">
+            <h1 class="text-3xl font-bold mb-6 text-center text-blue-400">🚪 iDSMS Login</h1>
+            <div class="space-y-4">
+                <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                <input type="password" id="password" placeholder="Password" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                <button onclick="handleLogin()" class="w-full btn-primary p-3 rounded-lg font-bold">Sign In</button>
+                <div class="text-center">
+                    <button onclick="toggleForgot(true)" class="text-sm text-slate-400 hover:text-blue-400">Forgot Password?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 忘记密码界面 (默认隐藏) -->
+        <div id="forgot-form" class="hidden">
+            <h2 class="text-2xl font-bold mb-4 text-center">Reset Password</h2>
+            <p class="text-slate-400 text-sm mb-4 text-center">We'll send a reset link to your email.</p>
+            <input type="email" id="reset-email" placeholder="Enter your email" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="handleResetPassword()" class="w-full bg-green-600 hover:bg-green-700 p-3 rounded-lg font-bold mb-3 transition">Send Reset Link</button>
+            <button onclick="toggleForgot(false)" class="w-full text-sm text-slate-400 hover:underline">Back to Login</button>
+        </div>
+    </div>
+
+    <!-- 控制面板 (登录后显示) -->
+    <div id="dashboard-section" class="hidden w-full max-w-2xl space-y-6">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <h2 class="text-xl font-bold">Live Monitoring</h2>
+            </div>
+            <button onclick="handleLogout()" class="px-4 py-1 bg-slate-800 hover:bg-red-900 rounded-full text-xs transition border border-slate-700 text-red-400">Sign Out</button>
+        </div>
+
+        <!-- 状态核心区域 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass p-6 rounded-2xl flex flex-col items-center justify-center">
+                <p class="text-slate-400 text-xs uppercase tracking-wider mb-2">System Security</p>
+                <div id="armed-status" class="text-3xl font-black italic">FETCHING...</div>
+                <button id="toggle-btn" onclick="toggleAlarm()" class="mt-4 px-8 py-2 bg-slate-700 hover:bg-slate-600 rounded-full text-xs font-bold transition">CHANGE STATUS</button>
+            </div>
+            <div class="glass p-6 rounded-2xl">
+                <p class="text-slate-400 text-xs uppercase tracking-wider mb-2">Last Activity</p>
+                <div id="latest-log" class="text-sm font-medium text-blue-300">Syncing with ESP32...</div>
+                <div id="log-time" class="text-[10px] text-slate-500 mt-2">--:--:--</div>
+            </div>
+        </div>
+
+        <!-- 计划任务设置 -->
+        <div class="glass p-6 rounded-2xl">
+            <h3 class="font-bold mb-4 flex items-center gap-2 text-sm">⏰ Auto-Schedule</h3>
+            <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl">
+                <div class="flex items-center gap-2">
+                    <input type="number" id="sHour" class="w-14 p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">
+                    <span class="text-slate-500">:00</span>
+                </div>
+                <span class="text-slate-600">to</span>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="eHour" class="w-14 p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">
+                    <span class="text-slate-500">:00</span>
+                </div>
+                <label class="flex items-center gap-2 ml-auto cursor-pointer">
+                    <input type="checkbox" id="sEn" class="w-5 h-5 rounded border-slate-700 bg-slate-800">
+                    <span class="text-sm">Active</span>
+                </label>
+            </div>
+            <button onclick="saveSettings()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 py-2 rounded-lg text-xs font-bold transition">APPLY SCHEDULE</button>
+        </div>
+
+        <!-- Admin 控制台 -->
+        <div id="admin-panel" class="hidden glass p-6 rounded-2xl border-l-4 border-yellow-500 bg-yellow-500/5">
+            <h3 class="font-bold mb-4 text-yellow-500 flex items-center gap-2 text-sm">👑 Admin: User Management</h3>
+            <div class="flex flex-col md:flex-row gap-2">
+                <input type="email" id="newEmail" placeholder="Member Email" class="flex-1 p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+                <input type="password" id="newPass" placeholder="Temp Password" class="flex-1 p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+                <button onclick="createUser()" class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded font-bold text-xs transition">Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co";
+        const SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
+        const supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentArmed = false;
+
+        // 切换忘记密码界面
+        function toggleForgot(show) {
+            document.getElementById('login-form').classList.toggle('hidden', show);
+            document.getElementById('forgot-form').classList.toggle('hidden', !show);
+        }
+
+        // 1. 登录逻辑
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("Error: " + error.message);
+            else checkSession();
+        }
+
+        // 2. 忘记密码 - 发送邮件
+        async function handleResetPassword() {
+            const email = document.getElementById('reset-email').value;
+            if(!email) return alert("Please enter your email");
+            
+            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            if (error) alert(error.message);
+            else alert("Password reset link has been sent to your email!");
+        }
+
+        // 3. 检查 Session 与 Admin 权限
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                
+                // 替换为你自己的 Admin 邮箱
+                if(session.user.email === 'admin@example.com') {
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                }
+                loadData();
+                setInterval(loadData, 5000); // 开启定时刷新
+            }
+        }
+
+        // 4. 从云端同步数据
+        async function loadData() {
+            // 获取系统状态
+            const { data: settings } = await supabase.from('system_settings').select('*').eq('id', 1).single();
+            if (settings) {
+                currentArmed = settings.system_armed;
+                const statusEl = document.getElementById('armed-status');
+                statusEl.innerText = currentArmed ? "🛡️ ARMED" : "🔓 DISARMED";
+                statusEl.className = currentArmed ? "text-3xl font-black italic text-green-400" : "text-3xl font-black italic text-rose-500";
+                
+                document.getElementById('sHour').value = settings.start_hour;
+                document.getElementById('eHour').value = settings.end_hour;
+                document.getElementById('sEn').checked = settings.schedule_enabled;
+            }
+
+            // 获取最新日志
+            const { data: logs } = await supabase.from('logs').select('*').order('id', { ascending: false }).limit(1);
+            if (logs && logs.length > 0) {
+                document.getElementById('latest-log').innerText = logs[0].event;
+                document.getElementById('log-time').innerText = "Logged at: " + logs[0].timestamp;
+            }
+        }
+
+        // 5. 修改 Alarm 状态
+        async function toggleAlarm() {
+            const { error } = await supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1);
+            if (error) alert("Update failed"); else loadData();
+        }
+
+        // 6. 保存定时设置
+        async function saveSettings() {
+            const updates = {
+                start_hour: parseInt(document.getElementById('sHour').value),
+                end_hour: parseInt(document.getElementById('eHour').value),
+                schedule_enabled: document.getElementById('sEn').checked
+            };
+            const { error } = await supabase.from('system_settings').update(updates).eq('id', 1);
+            if (error) alert("Update failed"); else alert("Schedule Updated!");
+        }
+
+        // 7. Admin: 创建新用户
+        async function createUser() {
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPass').value;
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) alert(error.message);
+            else alert("Registration email sent to " + email);
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        checkSession();
+    </script>
+</body>
+</html>
