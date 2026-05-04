@@ -96,6 +96,7 @@
             </div>
         </div>
 
+        <!-- 其他页面 -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
@@ -145,10 +146,13 @@
             if (error) alert(error.message); else checkSession();
         }
 
+        // --- 修正：加入了 redirectTo ---
         async function handleResetPassword() {
             const email = document.getElementById('reset-email').value;
             if(!email) return alert("Please enter email");
-            const { error } = await _supabase.auth.resetPasswordForEmail(email);
+            const { error } = await _supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: 'https://hang0224.github.io/iDSMTS/',
+            });
             if (error) alert(error.message); else alert("Reset link sent! Check your inbox.");
         }
 
@@ -211,14 +215,20 @@
             const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked };
             await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData();
         }
+
+        // --- 修正：加入了 emailRedirectTo ---
         async function createUser() {
             const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
-            const { error } = await _supabase.auth.signUp({ email: e, password: p });
-            if (error) alert(error.message); else alert("Success!");
+            const { error } = await _supabase.auth.signUp({ 
+                email: e, 
+                password: p,
+                options: { emailRedirectTo: 'https://hang0224.github.io/iDSMTS/' }
+            });
+            if (error) alert(error.message); else alert("Confirmation email sent!");
         }
+
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
 
-        // 重置密码逻辑
         _supabase.auth.onAuthStateChange(async (event) => {
             if (event === "PASSWORD_RECOVERY") {
                 const pass = prompt("Enter new password (min 6 chars):");
