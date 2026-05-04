@@ -24,12 +24,11 @@
 </head>
 <body class="flex">
 
-    <!-- 登录/重置模块 -->
+    <!-- Auth Section -->
     <div id="auth-section" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]">
         <div class="w-full max-w-md p-10">
             <h1 class="text-6xl font-extrabold mb-12 tracking-tighter text-center">iDSMS</h1>
             
-            <!-- 登录表单 -->
             <div id="login-form">
                 <div class="space-y-5">
                     <input type="email" id="email" placeholder="Email" class="w-full p-4">
@@ -39,7 +38,6 @@
                 </div>
             </div>
 
-            <!-- 重置密码表单 -->
             <div id="forgot-form" class="hidden text-center">
                 <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
                 <p class="text-slate-400 text-sm mb-6">We will send a reset link to your email.</p>
@@ -50,7 +48,7 @@
         </div>
     </div>
 
-    <!-- 侧边栏 Sidebar -->
+    <!-- Sidebar -->
     <div class="sidebar">
         <h1 class="text-5xl font-extrabold mb-16 tracking-tighter">iDSMS</h1>
         <nav class="flex-1 space-y-2">
@@ -62,9 +60,8 @@
         <button onclick="handleLogout()" class="text-rose-400 font-bold text-left text-xl hover:opacity-70 transition">Sign out</button>
     </div>
 
-    <!-- 主内容区 Main Content -->
+    <!-- Main Content -->
     <div class="main-content">
-        <!-- Dashboard Page -->
         <div id="dashboard" class="page active space-y-10">
             <h2 id="monitoring-text" class="text-4xl font-bold">Live Monitoring</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -96,7 +93,6 @@
             </div>
         </div>
 
-        <!-- 其他页面 -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
@@ -129,6 +125,9 @@
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
         let currentArmed = false;
 
+        // --- 修正：已更新为新的 iDSMS 路径 ---
+        const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
+
         function showPage(p, el) {
             document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -146,12 +145,11 @@
             if (error) alert(error.message); else checkSession();
         }
 
-        // --- 修正：加入了 redirectTo ---
         async function handleResetPassword() {
             const email = document.getElementById('reset-email').value;
             if(!email) return alert("Please enter email");
             const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: 'https://hang0224.github.io/iDSMTS/',
+                redirectTo: MY_URL,
             });
             if (error) alert(error.message); else alert("Reset link sent! Check your inbox.");
         }
@@ -160,6 +158,7 @@
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
                 document.getElementById('auth-section').classList.add('hidden');
+                // 仅特定的管理员邮箱可以看到注册选项
                 if(session.user.email === 'keehang060224@gmail.com') document.getElementById('nav-register').classList.remove('hidden');
                 loadData(); setInterval(loadData, 5000);
             }
@@ -181,18 +180,20 @@
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
                 
+                // 开启定时任务时锁定手动切换
                 const scheduleOn = settings.schedule_enabled;
-                const changeBtn = document.getElementById('change-status-btn');
-                changeBtn.disabled = scheduleOn;
+                document.getElementById('change-status-btn').disabled = scheduleOn;
 
                 currentArmed = settings.system_armed;
                 const sEl = document.getElementById('armed-status');
                 sEl.innerText = currentArmed ? "ARMED" : "DISARMED";
                 sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
 
+                // 实时显示门磁状态
                 const dEl = document.getElementById('door-status-text');
-                dEl.innerText = settings.door_status || "UNKNOWN";
-                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
+                const doorVal = settings.door_status || "UNKNOWN";
+                dEl.innerText = doorVal;
+                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (doorVal === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
 
                 document.getElementById('sHour').value = settings.start_hour;
                 document.getElementById('eHour').value = settings.end_hour;
@@ -216,13 +217,12 @@
             await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData();
         }
 
-        // --- 修正：加入了 emailRedirectTo ---
         async function createUser() {
             const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
             const { error } = await _supabase.auth.signUp({ 
                 email: e, 
                 password: p,
-                options: { emailRedirectTo: 'https://hang0224.github.io/iDSMTS/' }
+                options: { emailRedirectTo: MY_URL }
             });
             if (error) alert(error.message); else alert("Confirmation email sent!");
         }
@@ -234,7 +234,7 @@
                 const pass = prompt("Enter new password (min 6 chars):");
                 if (pass && pass.length >= 6) {
                     await _supabase.auth.updateUser({ password: pass });
-                    alert("Success! Password updated."); window.location.href = "https://hang0224.github.io/iDSMTS/";
+                    alert("Success! Password updated."); window.location.href = MY_URL;
                 }
             }
         });
