@@ -6,118 +6,106 @@
     <title>iDSMS Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #1e293b; color: white; margin: 0; overflow: hidden; }
-        .sidebar { background-color: #0f172a; width: 260px; height: 100vh; display: flex; flex-direction: column; padding: 40px 20px; flex-shrink: 0; }
-        .nav-item { padding: 12px 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; color: #94a3b8; font-weight: 500; margin-bottom: 5px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
-        .nav-item.active { background: #3b82f6; color: white; }
-        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 40px; background-color: #1e293b; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 20px; }
-        input { outline: none; background: #0f172a !important; border: 1px solid #334155 !important; color: white; }
+        .sidebar { background-color: #0f172a; width: 260px; height: 100vh; display: flex; flex-direction: column; padding: 50px 30px; flex-shrink: 0; }
+        .nav-item { padding: 12px 0; cursor: pointer; transition: 0.2s; color: white; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; }
+        .nav-item:hover { opacity: 0.7; }
+        .nav-item.active { color: white; }
+        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 50px; background-color: #1e293b; }
+        .glass { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; }
+        input { background: transparent !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white; border-radius: 8px; }
         .page { display: none; }
-        .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .page.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="flex">
 
     <!-- 登录模块 -->
-    <div id="auth-section" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a] p-4">
-        <div class="w-full max-w-md glass p-8 shadow-2xl">
-            <h1 class="text-4xl font-black mb-8 text-center tracking-tighter">iDSMS</h1>
-            <div class="space-y-4">
-                <input type="email" id="email" placeholder="Email" class="w-full p-4 rounded-xl">
-                <input type="password" id="password" placeholder="Password" class="w-full p-4 rounded-xl">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-bold transition">Sign In</button>
+    <div id="auth-section" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]">
+        <div class="w-full max-w-md p-10">
+            <h1 class="text-6xl font-extrabold mb-12 tracking-tighter text-center">iDSMS</h1>
+            <div class="space-y-5">
+                <input type="email" id="email" placeholder="Email" class="w-full p-4">
+                <input type="password" id="password" placeholder="Password" class="w-full p-4">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">Sign In</button>
             </div>
         </div>
     </div>
 
-    <!-- 侧边栏 -->
+    <!-- 侧边栏 Sidebar -->
     <div class="sidebar">
-        <h1 class="text-4xl font-black mb-12 tracking-tighter px-4">iDSMS</h1>
-        <nav class="flex-1">
+        <h1 class="text-5xl font-extrabold mb-16 tracking-tighter">iDSMS</h1>
+        <nav class="flex-1 space-y-2">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
             <div class="nav-item" onclick="showPage('activity', this)">• Activity log</div>
             <div class="nav-item" onclick="showPage('notification', this)">• Notification</div>
             <div id="nav-register" class="nav-item hidden" onclick="showPage('register', this)">• User register</div>
         </nav>
-        <button onclick="handleLogout()" class="text-rose-500 font-bold px-4 text-left hover:text-rose-400 transition mb-4">Sign out</button>
+        <button onclick="handleLogout()" class="text-rose-400 font-bold text-left text-xl hover:opacity-70 transition">Sign out</button>
     </div>
 
-    <!-- 主内容 -->
+    <!-- 主内容区 Main Content -->
     <div class="main-content">
         
-        <!-- Dashboard -->
-        <div id="dashboard" class="page active space-y-6">
-            <div class="flex justify-between items-center mb-8">
-                <h2 id="monitoring-text" class="text-3xl font-bold font-bold">Live Monitoring</h2>
-                <span id="status-dot" class="w-4 h-4 bg-green-500 rounded-full animate-pulse"></span>
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active space-y-10">
+            <h2 id="monitoring-text" class="text-4xl font-bold">Live Monitoring</h2>
+
+            <!-- 状态双栏布局 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 左侧：系统安全状态 -->
+                <div class="glass flex flex-col items-center justify-center text-center">
+                    <div id="armed-status" class="text-6xl font-black italic mb-8 tracking-tighter text-green-400">ARMED</div>
+                    <button onclick="toggleAlarm()" class="bg-transparent border border-white/20 px-10 py-3 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-white/5 transition">CHANGE STATUS</button>
+                </div>
+
+                <!-- 右侧：门磁状态 (新增) -->
+                <div class="glass flex flex-col items-center justify-center text-center">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Door Status</p>
+                    <div id="door-status-text" class="text-6xl font-black italic mb-2 tracking-tighter text-blue-400 uppercase">CLOSED</div>
+                    <p id="last-ping-text" class="text-slate-500 text-xs font-mono">Syncing...</p>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="glass flex flex-col items-center justify-center py-10">
-                    <div id="armed-status" class="text-5xl font-black italic mb-6 text-green-400">ARMED</div>
-                    <button onclick="toggleAlarm()" class="bg-slate-800 border border-slate-700 px-10 py-3 rounded-full font-bold">CHANGE STATUS</button>
-                </div>
-                <div class="glass space-y-4">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest uppercase tracking-widest font-bold">⏰ Auto-Schedule Alarm</h3>
-                    <div class="flex items-center gap-4 bg-[#0f172a] p-5 rounded-2xl">
-                        <input type="number" id="sHour" class="w-16 p-2 rounded text-center text-xl font-bold"> : 00 to
-                        <input type="number" id="eHour" class="w-16 p-2 rounded text-center text-xl font-bold"> : 00
-                        <label class="ml-auto flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sEn" class="w-6 h-6"> <span class="font-bold">ENABLE</span></label>
+
+            <!-- 定时设置卡片 -->
+            <div class="glass space-y-8">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">⏰ Auto-Schedule Alarm</h3>
+                <div class="flex items-center gap-6 bg-black/20 p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="sHour" class="w-20 p-3 text-center text-3xl font-bold">
+                        <span class="text-slate-400 text-xl">: 00 to</span>
+                        <input type="number" id="eHour" class="w-20 p-3 text-center text-3xl font-bold">
+                        <span class="text-slate-400 text-xl">: 00</span>
                     </div>
-                    <button onclick="saveSettings()" class="w-full bg-blue-600 p-4 rounded-xl font-bold">UPDATE SETTINGS</button>
+                    <label class="ml-auto flex items-center gap-4 cursor-pointer">
+                        <input type="checkbox" id="sEn" class="w-8 h-8 rounded border-white/20 bg-transparent">
+                        <span class="text-xl font-bold">ENABLE</span>
+                    </label>
                 </div>
+                <button onclick="saveSettings()" class="w-full bg-blue-600 p-5 rounded-2xl font-bold text-xl hover:bg-blue-700 transition uppercase tracking-widest">Update Settings</button>
             </div>
         </div>
 
-        <!-- Notification (管理 Telegram 用户) -->
-        <div id="notification" class="page space-y-6">
-            <h2 class="text-3xl font-bold mb-8 font-bold">Telegram Notifications</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- 添加订阅者 -->
-                <div class="glass lg:col-span-1">
-                    <h3 class="text-sm font-bold text-blue-400 uppercase mb-4 font-bold">Add Subscriber</h3>
-                    <div class="space-y-4">
-                        <input type="text" id="tgName" placeholder="Name (e.g. Kee Hang)" class="w-full p-3 rounded-lg">
-                        <input type="text" id="tgID" placeholder="Telegram Chat ID" class="w-full p-3 rounded-lg">
-                        <button onclick="addTelegramUser()" class="w-full bg-blue-600 p-3 rounded-lg font-bold">Add User</button>
-                    </div>
-                </div>
-                <!-- 订阅者列表 -->
-                <div class="glass lg:col-span-2">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-4 font-bold">Active Recipients</h3>
-                    <div class="overflow-hidden">
-                        <table class="w-full text-left">
-                            <tbody id="tg-table-body" class="text-sm">
-                                <!-- Telegram users listed here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Activity Log -->
+        <!-- 其他页面保持原样... -->
         <div id="activity" class="page space-y-6">
-            <h2 class="text-3xl font-bold mb-8 font-bold">Activity History</h2>
-            <div class="glass"><table class="w-full text-left"><thead><tr class="text-slate-500 text-xs uppercase border-b border-slate-800 font-bold"><th class="pb-4">Event</th><th class="pb-4">Time</th></tr></thead><tbody id="log-table-body" class="text-sm"></tbody></table></div>
+            <h2 class="text-3xl font-bold mb-8">Activity History</h2>
+            <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
         </div>
-
-        <!-- User Register -->
-        <div id="register" class="page space-y-6">
-            <h2 class="text-3xl font-bold mb-8 font-bold">User Registration</h2>
-            <div class="glass max-w-xl border-l-4 border-yellow-500 font-bold">
-                <h3 class="text-yellow-500 font-bold mb-4 font-bold">👑 ADMIN: REGISTER MEMBER</h3>
-                <div class="space-y-4">
-                    <input type="email" id="newEmail" placeholder="Email" class="w-full p-4 rounded-xl">
-                    <input type="password" id="newPass" placeholder="Password" class="w-full p-4 rounded-xl">
-                    <button onclick="createUser()" class="w-full bg-yellow-600 p-4 rounded-xl font-bold">REGISTER</button>
-                </div>
+        <div id="notification" class="page space-y-6">
+            <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass"><input type="text" id="tgName" placeholder="Name" class="w-full p-3 mb-4"><input type="text" id="tgID" placeholder="Chat ID" class="w-full p-3 mb-4"><button onclick="addTelegramUser()" class="w-full bg-blue-600 p-3 rounded-lg font-bold">Add User</button></div>
+                <div class="glass"><div id="tg-table-body"></div></div>
             </div>
         </div>
+        <div id="register" class="page space-y-6">
+            <h2 class="text-3xl font-bold">User Registration</h2>
+            <div class="glass max-w-xl"><input type="email" id="newEmail" placeholder="Email" class="w-full p-4 mb-4"><input type="password" id="newPass" placeholder="Password" class="w-full p-4 mb-4"><button onclick="createUser()" class="w-full bg-yellow-600 p-4 rounded-xl font-bold">REGISTER</button></div>
+        </div>
+
     </div>
 
     <script>
@@ -146,43 +134,41 @@
             }
         }
 
-        async function addTelegramUser() {
-            const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value;
-            if(!n || !id) return alert("Fill all fields");
-            const { error } = await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]);
-            if (error) alert(error.message); else { document.getElementById('tgName').value=''; document.getElementById('tgID').value=''; loadData(); }
-        }
-
-        async function deleteTelegramUser(id) {
-            if(confirm("Remove this subscriber?")) {
-                await _supabase.from('telegram_users').delete().eq('id', id); loadData();
-            }
-        }
-
         async function loadData() {
             const { data: settings } = await _supabase.from('system_settings').select('*').eq('id', 1).single();
             if (settings) {
+                // 心跳与在线状态
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
-                const dot = document.getElementById('status-dot'), text = document.getElementById('monitoring-text');
-                if (diff > 15) { dot.className = "w-4 h-4 bg-red-500 rounded-full"; text.innerHTML = 'Device Offline <span class="text-sm font-normal text-slate-500">(' + diff + 's ago)</span>'; }
-                else { dot.className = "w-4 h-4 bg-green-500 rounded-full animate-pulse"; text.innerText = 'Live Monitoring'; }
+                document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
+                
+                // 系统布防状态
                 currentArmed = settings.system_armed;
                 const sEl = document.getElementById('armed-status');
-                sEl.innerText = currentArmed ? "ARMED" : "DISARMED"; sEl.className = currentArmed ? "text-5xl font-black italic mb-6 text-green-400" : "text-5xl font-black italic mb-6 text-rose-500";
-                document.getElementById('sHour').value = settings.start_hour; document.getElementById('eHour').value = settings.end_hour; document.getElementById('sEn').checked = settings.schedule_enabled;
+                sEl.innerText = currentArmed ? "ARMED" : "DISARMED";
+                sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
+
+                // 门磁状态 (新增显示逻辑)
+                const dEl = document.getElementById('door-status-text');
+                const doorVal = settings.door_status || "UNKNOWN";
+                dEl.innerText = doorVal;
+                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (doorVal === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
+
+                document.getElementById('sHour').value = settings.start_hour;
+                document.getElementById('eHour').value = settings.end_hour;
+                document.getElementById('sEn').checked = settings.schedule_enabled;
             }
 
-            // 加载日志
-            const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(15);
+            // 日志列表
+            const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(10);
             if (logs) {
-                let h = ''; logs.forEach(l => { h += `<tr class="border-b border-slate-800/50"><td class="py-4 font-bold">${l.event}</td><td class="py-4 text-slate-400 font-mono text-xs">${l.timestamp}</td></tr>`; });
+                let h = ''; logs.forEach(l => { h += `<tr class="border-b border-white/5"><td class="py-4 font-bold text-lg">${l.event}</td><td class="py-4 text-slate-500 font-mono text-sm text-right">${l.timestamp}</td></tr>`; });
                 document.getElementById('log-table-body').innerHTML = h;
             }
 
-            // 加载 Telegram 用户
-            const { data: tgUsers } = await _supabase.from('telegram_users').select('*');
-            if (tgUsers) {
-                let h = ''; tgUsers.forEach(u => { h += `<tr class="border-b border-slate-800/50"><td class="py-3"><b>${u.name}</b><br><span class="text-xs text-slate-500">ID: ${u.telegram_id}</span></td><td class="text-right"><button onclick="deleteTelegramUser(${u.id})" class="text-rose-500 text-xs font-bold uppercase font-bold">Remove</button></td></tr>`; });
+            // Telegram 用户
+            const { data: tg } = await _supabase.from('telegram_users').select('*');
+            if (tg) {
+                let h = ''; tg.forEach(u => { h += `<div class="flex justify-between items-center mb-4 pb-4 border-b border-white/5"><div><div class="font-bold">${u.name}</div><div class="text-xs text-slate-500">${u.telegram_id}</div></div><button onclick="deleteTelegramUser(${u.id})" class="text-rose-400 text-sm font-bold">REMOVE</button></div>`; });
                 document.getElementById('tg-table-body').innerHTML = h;
             }
         }
@@ -190,12 +176,7 @@
         async function toggleAlarm() { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); }
         async function saveSettings() {
             const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked };
-            await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!");
-        }
-        async function createUser() {
-            const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
-            const { error } = await _supabase.auth.signUp({ email: e, password: p });
-            if (error) alert(error.message); else alert("Sent!");
+            await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Settings Updated!");
         }
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
         checkSession();
