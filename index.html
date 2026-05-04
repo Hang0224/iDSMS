@@ -11,12 +11,10 @@
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
         .btn-primary { background: #3b82f6; transition: 0.3s; }
         .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
-        input { outline: none; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- 认证模块 -->
     <div id="auth-section" class="w-full max-w-md glass p-8 rounded-3xl shadow-2xl">
         <div id="login-form">
             <h1 class="text-3xl font-bold mb-6 text-center text-blue-400">🚪 iDSMS Login</h1>
@@ -24,64 +22,59 @@
                 <input type="email" id="email" placeholder="Email" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white">
                 <input type="password" id="password" placeholder="Password" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-blue-500 text-white">
                 <button onclick="handleLogin()" class="w-full btn-primary p-3 rounded-lg font-bold">Sign In</button>
-                <div class="text-center">
-                    <button onclick="toggleForgot(true)" class="text-sm text-slate-400 hover:text-blue-400">Forgot Password?</button>
-                </div>
+                <div class="text-center"><button onclick="toggleForgot(true)" class="text-sm text-slate-400 hover:text-blue-400">Forgot Password?</button></div>
             </div>
         </div>
-
         <div id="forgot-form" class="hidden">
             <h2 class="text-2xl font-bold mb-4 text-center">Reset Password</h2>
-            <p class="text-slate-400 text-sm mb-4 text-center">We'll send a reset link to your email.</p>
-            <input type="email" id="reset-email" placeholder="Enter your email" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 mb-4 focus:ring-2 focus:ring-blue-500 text-white">
+            <input type="email" id="reset-email" placeholder="Email" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 mb-4 focus:ring-2 focus:ring-blue-500 text-white">
             <button onclick="handleResetPassword()" class="w-full bg-green-600 hover:bg-green-700 p-3 rounded-lg font-bold mb-3 transition">Send Reset Link</button>
             <button onclick="toggleForgot(false)" class="w-full text-sm text-slate-400 hover:underline">Back to Login</button>
         </div>
     </div>
 
-    <!-- 控制面板 -->
     <div id="dashboard-section" class="hidden w-full max-w-2xl space-y-6">
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                <h2 class="text-xl font-bold">Live Monitoring</h2>
+                <span id="status-dot" class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <h2 id="monitoring-text" class="text-xl font-bold">Live Monitoring</h2>
             </div>
-            <button onclick="handleLogout()" class="px-4 py-1 bg-slate-800 hover:bg-red-900 rounded-full text-xs transition border border-slate-700 text-red-400 font-bold font-bold">Sign Out</button>
+            <button onclick="handleLogout()" class="px-4 py-1 bg-slate-800 hover:bg-red-900 rounded-full text-xs transition border border-slate-700 text-red-400 font-bold">Sign Out</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass p-6 rounded-2xl flex flex-col items-center justify-center min-h-[160px]">
-                <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold font-bold">System Security</p>
+                <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold">System Security</p>
                 <div id="armed-status" class="text-3xl font-black italic">FETCHING...</div>
-                <button id="toggle-btn" onclick="toggleAlarm()" class="mt-4 px-8 py-2 bg-slate-700 hover:bg-slate-600 rounded-full text-[10px] font-bold transition">CHANGE STATUS</button>
+                <button onclick="toggleAlarm()" class="mt-4 px-8 py-2 bg-slate-700 hover:bg-slate-600 rounded-full text-[10px] font-bold transition">CHANGE STATUS</button>
             </div>
             <div class="glass p-6 rounded-2xl flex flex-col justify-center">
-                <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold font-bold">Latest Activity</p>
+                <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold">Latest Activity</p>
                 <div id="latest-log" class="text-sm font-bold text-blue-300">Syncing...</div>
-                <div id="log-time" class="text-[10px] text-slate-500 mt-2 font-mono font-mono">--:--:--</div>
+                <div id="log-time" class="text-[10px] text-slate-500 mt-2 font-mono">--:--:--</div>
             </div>
         </div>
 
         <div class="glass p-6 rounded-2xl">
-            <h3 class="font-bold mb-4 flex items-center gap-2 text-sm">⏰ Auto-Schedule Alarm</h3>
+            <h3 class="font-bold mb-4 flex items-center gap-2 text-sm">⏰ Auto-Schedule</h3>
             <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl">
                 <input type="number" id="sHour" min="0" max="23" class="w-14 p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">:00
-                <span class="text-slate-600 text-xs font-bold uppercase uppercase font-bold">to</span>
+                <span class="text-slate-600 text-xs font-bold uppercase">to</span>
                 <input type="number" id="eHour" min="0" max="23" class="w-14 p-2 bg-slate-800 rounded border border-slate-700 text-center text-sm">:00
                 <label class="flex items-center gap-3 ml-auto cursor-pointer">
                     <input type="checkbox" id="sEn" class="w-5 h-5 rounded border-slate-700 bg-slate-800 cursor-pointer">
-                    <span class="text-xs font-bold uppercase uppercase font-bold text-slate-300">Enable</span>
+                    <span class="text-xs font-bold uppercase text-slate-300">Enable</span>
                 </label>
             </div>
             <button onclick="saveSettings()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl text-xs font-bold transition uppercase tracking-widest">Update Settings</button>
         </div>
 
         <div id="admin-panel" class="hidden glass p-6 rounded-2xl border-l-4 border-yellow-500 bg-yellow-500/5">
-            <h3 class="font-bold mb-4 text-yellow-500 text-sm uppercase tracking-wider uppercase tracking-wider font-bold">👑 Admin: Register Member</h3>
+            <h3 class="font-bold mb-4 text-yellow-500 text-sm uppercase tracking-wider font-bold">👑 Admin: Register Member</h3>
             <div class="flex flex-col md:flex-row gap-2">
                 <input type="email" id="newEmail" placeholder="Email" class="flex-1 p-2 bg-slate-800 rounded border border-slate-700 text-sm">
                 <input type="password" id="newPass" placeholder="Password" class="flex-1 p-2 bg-slate-800 rounded border border-slate-700 text-sm">
-                <button onclick="createUser()" class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded font-bold text-[10px] uppercase transition uppercase">Register</button>
+                <button onclick="createUser()" class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded font-bold text-[10px] uppercase transition">Register</button>
             </div>
         </div>
     </div>
@@ -90,7 +83,6 @@
         const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co";
         const SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
-
         let currentArmed = false;
 
         function toggleForgot(show) {
@@ -99,21 +91,15 @@
         }
 
         async function handleLogin() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            if(!email || !password) return alert("Please fill all fields");
-
-            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-            if (error) alert("Login Error: " + error.message);
-            else checkSession();
+            const e = document.getElementById('email').value, p = document.getElementById('password').value;
+            const { data, error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message); else checkSession();
         }
 
         async function handleResetPassword() {
-            const email = document.getElementById('reset-email').value;
-            if(!email) return alert("Please enter email");
-            const { error } = await _supabase.auth.resetPasswordForEmail(email);
-            if (error) alert("Error: " + error.message);
-            else alert("Reset link sent!");
+            const e = document.getElementById('reset-email').value;
+            const { error } = await _supabase.auth.resetPasswordForEmail(e);
+            if (error) alert(error.message); else alert("Link sent!");
         }
 
         async function checkSession() {
@@ -121,18 +107,28 @@
             if (session) {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
-                // 这里确保是你的 admin 邮箱
-                if(session.user.email === 'keehang060224@gmail.com') {
-                    document.getElementById('admin-panel').classList.remove('hidden');
-                }
-                loadData();
-                setInterval(loadData, 5000);
+                if(session.user.email === 'keehang060224@gmail.com') document.getElementById('admin-panel').classList.remove('hidden');
+                loadData(); setInterval(loadData, 5000);
             }
         }
 
         async function loadData() {
             const { data: settings } = await _supabase.from('system_settings').select('*').eq('id', 1).single();
             if (settings) {
+                // 在线状态检测逻辑
+                const lastPing = new Date(settings.last_ping);
+                const diff = Math.floor((new Date() - lastPing) / 1000);
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('monitoring-text');
+
+                if (diff > 15) {
+                    dot.className = "w-3 h-3 bg-red-500 rounded-full";
+                    text.innerHTML = 'Device Offline <span class="text-[10px] font-normal text-slate-500">(' + diff + 's ago)</span>';
+                } else {
+                    dot.className = "w-3 h-3 bg-green-500 rounded-full animate-pulse";
+                    text.innerText = 'Live Monitoring';
+                }
+
                 currentArmed = settings.system_armed;
                 const statusEl = document.getElementById('armed-status');
                 statusEl.innerText = currentArmed ? "🛡️ ARMED" : "🔓 DISARMED";
@@ -141,7 +137,6 @@
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = settings.schedule_enabled;
             }
-
             const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(1);
             if (logs && logs.length > 0) {
                 document.getElementById('latest-log').innerText = logs[0].event;
@@ -150,8 +145,7 @@
         }
 
         async function toggleAlarm() {
-            const { error } = await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1);
-            if (error) alert("Failed: " + error.message); else loadData();
+            await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData();
         }
 
         async function saveSettings() {
@@ -161,38 +155,26 @@
                 schedule_enabled: document.getElementById('sEn').checked
             };
             const { error } = await _supabase.from('system_settings').update(updates).eq('id', 1);
-            if (error) alert("Failed: " + error.message); else alert("Updated!");
+            if (error) alert("Failed"); else alert("Updated!");
         }
 
         async function createUser() {
-            const email = document.getElementById('newEmail').value;
-            const password = document.getElementById('newPass').value;
-            const { error } = await _supabase.auth.signUp({ email, password });
-            if (error) alert(error.message); else alert("Email sent to " + email);
+            const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
+            const { error } = await _supabase.auth.signUp({ email: e, password: p });
+            if (error) alert(error.message); else alert("Email sent!");
         }
 
-        async function handleLogout() {
-            await _supabase.auth.signOut();
-            location.reload();
-        }
+        async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
 
-        // --- 新增：监听密码重置事件 ---
-        _supabase.auth.onAuthStateChange(async (event, session) => {
+        _supabase.auth.onAuthStateChange(async (event) => {
             if (event === "PASSWORD_RECOVERY") {
-                const newPassword = prompt("Please enter your new password:");
-                if (newPassword && newPassword.length >= 6) {
-                    const { error } = await _supabase.auth.updateUser({ password: newPassword });
-                    if (error) alert("Error updating password: " + error.message);
-                    else {
-                        alert("Password updated successfully! You can now log in.");
-                        window.location.href = "https://hang0224.github.io/iDSMTS/";
-                    }
-                } else {
-                    alert("Password must be at least 6 characters.");
+                const pass = prompt("New password (min 6 chars):");
+                if (pass && pass.length >= 6) {
+                    await _supabase.auth.updateUser({ password: pass });
+                    alert("Success!"); window.location.href = "https://hang0224.github.io/iDSMTS/";
                 }
             }
         });
-
         checkSession();
     </script>
 </body>
