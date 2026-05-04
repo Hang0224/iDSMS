@@ -15,24 +15,37 @@
         .nav-item.active { color: white; }
         .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 50px; background-color: #1e293b; }
         .glass { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; }
-        input { background: transparent !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white; border-radius: 8px; }
+        input { background: transparent !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white; border-radius: 8px; outline: none; }
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        /* 禁用按钮的样式 */
         button:disabled { opacity: 0.25; cursor: not-allowed; }
     </style>
 </head>
 <body class="flex">
 
-    <!-- 登录模块 -->
+    <!-- 登录/重置模块 -->
     <div id="auth-section" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]">
         <div class="w-full max-w-md p-10">
             <h1 class="text-6xl font-extrabold mb-12 tracking-tighter text-center">iDSMS</h1>
-            <div class="space-y-5">
-                <input type="email" id="email" placeholder="Email" class="w-full p-4">
-                <input type="password" id="password" placeholder="Password" class="w-full p-4">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">Sign In</button>
+            
+            <!-- 登录表单 -->
+            <div id="login-form">
+                <div class="space-y-5">
+                    <input type="email" id="email" placeholder="Email" class="w-full p-4">
+                    <input type="password" id="password" placeholder="Password" class="w-full p-4">
+                    <button onclick="handleLogin()" class="w-full bg-blue-600 p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">Sign In</button>
+                    <button onclick="toggleForgot(true)" class="w-full text-sm text-slate-500 hover:text-blue-400 mt-2 transition">Forgot Password?</button>
+                </div>
+            </div>
+
+            <!-- 重置密码表单 -->
+            <div id="forgot-form" class="hidden text-center">
+                <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
+                <p class="text-slate-400 text-sm mb-6">We will send a reset link to your email.</p>
+                <input type="email" id="reset-email" placeholder="Enter your email" class="w-full p-4 mb-4">
+                <button onclick="handleResetPassword()" class="w-full bg-green-600 p-4 rounded-xl font-bold mb-4 hover:bg-green-700 transition">Send Reset Link</button>
+                <button onclick="toggleForgot(false)" class="text-sm text-slate-500 hover:underline">Back to Login</button>
             </div>
         </div>
     </div>
@@ -51,30 +64,22 @@
 
     <!-- 主内容区 Main Content -->
     <div class="main-content">
-        
         <!-- Dashboard Page -->
         <div id="dashboard" class="page active space-y-10">
             <h2 id="monitoring-text" class="text-4xl font-bold">Live Monitoring</h2>
-
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- 系统安全状态 -->
                 <div class="glass flex flex-col items-center justify-center text-center">
-                    <div id="armed-status" class="text-6xl font-black italic mb-8 tracking-tighter text-green-400">ARMED</div>
-                    <!-- 关键修改：添加了 ID 以便控制禁用状态 -->
+                    <div id="armed-status" class="text-6xl font-black italic mb-8 tracking-tighter">ARMED</div>
                     <button id="change-status-btn" onclick="toggleAlarm()" class="bg-transparent border border-white/20 px-10 py-3 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-white/5 transition">CHANGE STATUS</button>
                 </div>
-
-                <!-- 门磁状态 -->
                 <div class="glass flex flex-col items-center justify-center text-center">
                     <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Door Status</p>
                     <div id="door-status-text" class="text-6xl font-black italic mb-2 tracking-tighter uppercase text-blue-400">CLOSED</div>
                     <p id="last-ping-text" class="text-slate-500 text-xs font-mono">Syncing...</p>
                 </div>
             </div>
-
-            <!-- 定时设置卡片 -->
             <div class="glass space-y-8">
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">⏰ Auto-Schedule Alarm</h3>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest">⏰ Auto-Schedule Alarm</h3>
                 <div class="flex items-center gap-6 bg-black/20 p-8 rounded-2xl border border-white/5">
                     <div class="flex items-center gap-3">
                         <input type="number" id="sHour" class="w-20 p-3 text-center text-3xl font-bold">
@@ -91,13 +96,11 @@
             </div>
         </div>
 
-        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
         </div>
 
-        <!-- Notification -->
         <div id="notification" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -110,7 +113,6 @@
             </div>
         </div>
 
-        <!-- User Register -->
         <div id="register" class="page space-y-6">
             <h2 class="text-3xl font-bold">User Registration</h2>
             <div class="glass max-w-xl">
@@ -119,7 +121,6 @@
                 <button onclick="createUser()" class="w-full bg-yellow-600 p-4 rounded-xl font-bold">REGISTER</button>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -133,10 +134,22 @@
             document.getElementById(p).classList.add('active'); el.classList.add('active');
         }
 
+        function toggleForgot(show) {
+            document.getElementById('login-form').classList.toggle('hidden', show);
+            document.getElementById('forgot-form').classList.toggle('hidden', !show);
+        }
+
         async function handleLogin() {
             const e = document.getElementById('email').value, p = document.getElementById('password').value;
             const { error } = await _supabase.auth.signInWithPassword({ email: e, password: p });
             if (error) alert(error.message); else checkSession();
+        }
+
+        async function handleResetPassword() {
+            const email = document.getElementById('reset-email').value;
+            if(!email) return alert("Please enter email");
+            const { error } = await _supabase.auth.resetPasswordForEmail(email);
+            if (error) alert(error.message); else alert("Reset link sent! Check your inbox.");
         }
 
         async function checkSession() {
@@ -150,13 +163,12 @@
 
         async function addTelegramUser() {
             const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value;
-            if(!n || !id) return alert("Fill all fields");
             const { error } = await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]);
             if (error) alert(error.message); else { document.getElementById('tgName').value=''; document.getElementById('tgID').value=''; loadData(); }
         }
 
         async function deleteTelegramUser(id) {
-            if(confirm("Remove this subscriber?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); }
+            if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); }
         }
 
         async function loadData() {
@@ -165,17 +177,9 @@
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
                 
-                // 定时状态判断逻辑
                 const scheduleOn = settings.schedule_enabled;
                 const changeBtn = document.getElementById('change-status-btn');
-                
-                if (scheduleOn) {
-                    changeBtn.disabled = true;
-                    changeBtn.title = "Manual control disabled while schedule is active";
-                } else {
-                    changeBtn.disabled = false;
-                    changeBtn.title = "";
-                }
+                changeBtn.disabled = scheduleOn;
 
                 currentArmed = settings.system_armed;
                 const sEl = document.getElementById('armed-status');
@@ -183,21 +187,18 @@
                 sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
 
                 const dEl = document.getElementById('door-status-text');
-                const doorVal = settings.door_status || "UNKNOWN";
-                dEl.innerText = doorVal;
-                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (doorVal === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
+                dEl.innerText = settings.door_status || "UNKNOWN";
+                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
 
                 document.getElementById('sHour').value = settings.start_hour;
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = scheduleOn;
             }
-
             const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(10);
             if (logs) {
                 let h = ''; logs.forEach(l => { h += `<tr class="border-b border-white/5"><td class="py-4 font-bold text-lg">${l.event}</td><td class="py-4 text-slate-500 font-mono text-sm text-right">${l.timestamp}</td></tr>`; });
                 document.getElementById('log-table-body').innerHTML = h;
             }
-
             const { data: tgUsers } = await _supabase.from('telegram_users').select('*');
             if (tgUsers) {
                 let h = ''; tgUsers.forEach(u => { h += `<div class="flex justify-between items-center mb-4 pb-4 border-b border-white/5"><div><div class="font-bold">${u.name}</div><div class="text-xs text-slate-500">${u.telegram_id}</div></div><button onclick="deleteTelegramUser(${u.id})" class="text-rose-400 text-sm font-bold">REMOVE</button></div>`; });
@@ -206,25 +207,28 @@
         }
 
         async function toggleAlarm() { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); }
-        
         async function saveSettings() {
-            const updates = { 
-                start_hour: parseInt(document.getElementById('sHour').value), 
-                end_hour: parseInt(document.getElementById('eHour').value), 
-                schedule_enabled: document.getElementById('sEn').checked 
-            };
-            await _supabase.from('system_settings').update(updates).eq('id', 1); 
-            alert("Settings Updated!");
-            loadData();
+            const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked };
+            await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData();
         }
-
         async function createUser() {
             const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
             const { error } = await _supabase.auth.signUp({ email: e, password: p });
-            if (error) alert(error.message); else alert("Registration Email Sent!");
+            if (error) alert(error.message); else alert("Success!");
         }
-
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
+
+        // 重置密码逻辑
+        _supabase.auth.onAuthStateChange(async (event) => {
+            if (event === "PASSWORD_RECOVERY") {
+                const pass = prompt("Enter new password (min 6 chars):");
+                if (pass && pass.length >= 6) {
+                    await _supabase.auth.updateUser({ password: pass });
+                    alert("Success! Password updated."); window.location.href = "https://hang0224.github.io/iDSMTS/";
+                }
+            }
+        });
+
         checkSession();
     </script>
 </body>
