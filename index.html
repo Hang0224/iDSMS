@@ -218,13 +218,20 @@
         }
 
         async function createUser() {
-            const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
+            const e = document.getElementById('newEmail').value;
+            const p = document.getElementById('newPass').value;
+            
             const { error } = await _supabase.auth.signUp({ 
                 email: e, 
                 password: p,
-                options: { emailRedirectTo: MY_URL }
+                options: {
+                    // 这里非常重要！必须和你的 GitHub Pages 地址完全对应
+                    emailRedirectTo: 'https://hang0224.github.io/iDSMS/'
+                }
             });
-            if (error) alert(error.message); else alert("Confirmation email sent!");
+            
+            if (error) alert(error.message); 
+            else alert("Success! Confirmation email sent.");
         }
 
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
