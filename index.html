@@ -10,14 +10,12 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #1e293b; color: white; margin: 0; overflow: hidden; }
         .sidebar { background-color: #0f172a; width: 260px; height: 100vh; display: flex; flex-direction: column; padding: 40px 30px; flex-shrink: 0; }
-        .nav-item { padding: 10px 0; cursor: pointer; transition: 0.2s; color: white; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; }
+        .nav-item { padding: 12px 0; cursor: pointer; transition: 0.2s; color: white; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; }
         .nav-item:hover { opacity: 0.7; }
         .nav-item.active { color: white; }
-        
-        .device-item { padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; border: 1px solid transparent; }
+        .device-item { padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; border: 1px solid transparent; color: #94a3b8; }
         .device-item:hover { background: rgba(255,255,255,0.05); }
-        .device-item.active { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; }
-        
+        .device-item.active { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; font-weight: bold; }
         .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 50px; background-color: #1e293b; }
         .glass { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; }
         input { background: transparent !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white; border-radius: 8px; outline: none; }
@@ -31,37 +29,24 @@
 </head>
 <body class="flex">
 
-    <!-- Auth Section -->
     <div id="auth-section" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]">
         <div class="w-full max-w-md p-10">
             <h1 class="text-6xl font-extrabold mb-12 tracking-tighter text-center">iDSMS</h1>
-            <div id="login-form">
-                <div class="space-y-5">
-                    <input type="email" id="email" placeholder="Email" class="w-full p-4">
-                    <input type="password" id="password" placeholder="Password" class="w-full p-4">
-                    <button onclick="handleLogin()" class="w-full bg-blue-600 p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">Sign In</button>
-                    <button onclick="toggleForgot(true)" class="w-full text-sm text-slate-500 hover:text-blue-400 mt-2 transition">Forgot Password?</button>
-                </div>
-            </div>
-            <div id="forgot-form" class="hidden text-center">
-                <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
-                <input type="email" id="reset-email" placeholder="Enter your email" class="w-full p-4 mb-4">
-                <button onclick="handleResetPassword()" class="w-full bg-green-600 p-4 rounded-xl font-bold mb-4 hover:bg-green-700 transition">Send Reset Link</button>
-                <button onclick="toggleForgot(false)" class="text-sm text-slate-500 hover:underline">Back to Login</button>
+            <div id="login-form" class="space-y-5">
+                <input type="email" id="email" placeholder="Email" class="w-full p-4">
+                <input type="password" id="password" placeholder="Password" class="w-full p-4">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition">Sign In</button>
             </div>
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div class="sidebar">
         <h1 class="text-5xl font-extrabold mb-8 tracking-tighter">iDSMS</h1>
         <div class="mb-8">
             <label class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] block mb-4">Select Device</label>
-            <div id="device-list" class="space-y-1">
-            </div>
+            <div id="device-list" class="space-y-1"></div>
             <button onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
         </div>
-
         <nav class="flex-1 space-y-1">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
             <div class="nav-item" onclick="showPage('activity', this)">• Activity log</div>
@@ -71,20 +56,18 @@
         <button onclick="handleLogout()" class="text-rose-400 font-bold text-left text-xl hover:opacity-70 transition">Sign out</button>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
-        <!-- Dashboard -->
         <div id="dashboard" class="page active space-y-10">
-            <h2 class="text-4xl font-bold"><span id="active-device-name">Loading...</span> <span id="role-badge" class="text-sm bg-slate-700 px-3 py-1 rounded-full ml-4">...</span></h2>
+            <h2 class="text-4xl font-bold"><span id="active-device-name">Device</span> <span id="role-badge" class="text-sm bg-slate-700 px-3 py-1 rounded-full ml-4">...</span></h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass flex flex-col items-center justify-center text-center">
+                <div class="glass text-center">
                     <div id="armed-status" class="text-6xl font-black italic mb-8 tracking-tighter">ARMED</div>
                     <button id="change-status-btn" onclick="toggleAlarm()" class="bg-transparent border border-white/20 px-10 py-3 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-white/5 transition">CHANGE STATUS</button>
                 </div>
-                <div class="glass flex flex-col items-center justify-center text-center">
+                <div class="glass text-center">
                     <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Door Status</p>
                     <div id="door-status-text" class="text-6xl font-black italic mb-2 tracking-tighter uppercase text-blue-400">CLOSED</div>
-                    <p id="last-ping-text" class="text-slate-500 text-xs font-mono">Syncing...</p>
+                    <p id="last-ping-text" class="text-slate-500 text-xs font-mono italic">Syncing...</p>
                 </div>
             </div>
             <div class="glass space-y-8">
@@ -94,49 +77,63 @@
                         <input type="number" id="sHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
                         <span class="text-slate-400 text-xl">: 00 to</span>
                         <input type="number" id="eHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
-                        <span class="text-slate-400 text-xl">: 00</span>
                     </div>
                     <label class="ml-auto flex items-center gap-4 cursor-pointer">
                         <input type="checkbox" id="sEn" class="w-8 h-8 rounded border-white/20 bg-transparent">
-                        <span class="text-xl font-bold">ENABLE</span>
+                        <span class="text-xl font-bold uppercase">Enable</span>
                     </label>
                 </div>
                 <button id="save-settings-btn" onclick="saveSettings()" class="w-full bg-blue-600 p-5 rounded-2xl font-bold text-xl hover:bg-blue-700 transition uppercase tracking-widest">Update Settings</button>
             </div>
         </div>
 
-        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="glass p-8 h-fit">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">📅 Select Date</h3>
                     <input type="date" id="log-date-picker" onchange="handleDateChange(this.value)" class="w-full p-4 text-lg font-bold">
                 </div>
                 <div class="lg:col-span-2 glass p-0 overflow-hidden">
-                    <div class="p-6 border-b border-white/5 bg-white/5">
-                        <h3 id="selected-date-title" class="font-bold text-xl text-blue-400 uppercase tracking-wider">Today's Logs</h3>
-                    </div>
-                    <div class="max-h-[600px] overflow-y-auto">
-                        <table class="w-full text-left">
-                            <tbody id="log-table-body">
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="p-6 border-b border-white/5 bg-white/5"><h3 id="selected-date-title" class="font-bold text-xl text-blue-400 uppercase">Today's Logs</h3></div>
+                    <div class="max-h-[600px] overflow-y-auto"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
                 </div>
             </div>
         </div>
 
-        <div id="notification" class="page space-y-6">...</div>
-        <div id="register" class="page space-y-6">...</div>
+        <div id="notification" class="page space-y-6">
+            <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass">
+                    <input type="text" id="tgName" placeholder="Name" class="w-full p-3 mb-4">
+                    <input type="text" id="tgID" placeholder="Chat ID" class="w-full p-3 mb-4">
+                    <button onclick="addTelegramUser()" class="w-full bg-blue-600 p-3 rounded-lg font-bold">Add User</button>
+                </div>
+                <div class="glass"><div id="tg-table-body"></div></div>
+            </div>
+        </div>
+
+        <div id="register" class="page space-y-6">
+            <h2 class="text-3xl font-bold">User Management</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass">
+                    <h3 class="mb-4 font-bold">Register Account</h3>
+                    <input type="email" id="newEmail" placeholder="Email" class="w-full p-4 mb-4">
+                    <input type="password" id="newPass" placeholder="Password" class="w-full p-4 mb-4">
+                    <button onclick="createUser()" class="w-full bg-yellow-600 p-4 rounded-xl font-bold">REGISTER</button>
+                </div>
+                <div class="glass">
+                    <h3 class="mb-4 font-bold">Role Settings</h3>
+                    <div id="user-role-list" class="space-y-4 max-h-[400px] overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co", SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
-        let currentArmed = false, userRole = 'user';
-        let activeDeviceId = 1; 
-        
+        let currentArmed = false, userRole = 'user', activeDeviceId = 1;
+
         function getLocalDateString() {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000; 
@@ -145,102 +142,6 @@
 
         let selectedLogDate = getLocalDateString();
         document.getElementById('log-date-picker').value = selectedLogDate;
-
-        async function loadDevices() {
-            const { data: devices } = await _supabase.from('devices').select('*').order('id');
-            const list = document.getElementById('device-list');
-            list.innerHTML = '';
-            
-            devices.forEach(d => {
-                const isSuper = userRole === 'super_admin';
-                const delBtn = isSuper ? `<span onclick="deleteDevice(${d.id}, event)" class="text-rose-500 hover:text-rose-300 ml-2">✕</span>` : '';
-                
-                const item = document.createElement('div');
-                item.className = `device-item ${d.id === activeDeviceId ? 'active' : ''}`;
-                item.innerHTML = `<span>${d.name}</span>${delBtn}`;
-                item.onclick = () => switchDevice(d.id, d.name);
-                list.appendChild(item);
-            });
-            
-            const active = devices.find(d => d.id === activeDeviceId);
-            if (active) document.getElementById('active-device-name').innerText = active.name;
-        }
-
-        function switchDevice(id, name) {
-            activeDeviceId = id;
-            document.getElementById('active-device-name').innerText = name;
-            loadDevices();
-            loadData(); 
-        }
-
-        async function addDevice() {
-            const name = prompt("Enter new device name:");
-            if (!name) return;
-            const { data, error } = await _supabase.from('devices').insert([{ name }]).select().single();
-            if (error) return alert(error.message);
-            await _supabase.from('system_settings').insert([{ id: data.id, system_armed: false }]);
-            loadDevices();
-        }
-
-        async function deleteDevice(id, e) {
-            e.stopPropagation();
-            if (!confirm("Delete this device and its settings?")) return;
-            await _supabase.from('devices').delete().eq('id', id);
-            if (activeDeviceId === id) activeDeviceId = 1;
-            loadDevices();
-        }
-
-        async function loadData() {
-            const { data: settings } = await _supabase.from('system_settings').select('*').eq('id', activeDeviceId).single();
-            if (settings) {
-                const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
-                document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
-                
-                const isManager = (userRole === 'admin' || userRole === 'super_admin');
-                document.getElementById('change-status-btn').disabled = (!isManager || settings.schedule_enabled);
-                
-                currentArmed = settings.system_armed;
-                const sEl = document.getElementById('armed-status');
-                sEl.innerText = currentArmed ? "ARMED" : "DISARMED";
-                sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
-                
-                const dEl = document.getElementById('door-status-text');
-                dEl.innerText = settings.door_status || "UNKNOWN";
-                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
-                
-                document.getElementById('sHour').value = settings.start_hour;
-                document.getElementById('eHour').value = settings.end_hour;
-                document.getElementById('sEn').checked = settings.schedule_enabled;
-                
-                const inputs = ['sHour', 'eHour', 'sEn'];
-                inputs.forEach(id => document.getElementById(id).disabled = !isManager);
-            }
-
-            const today = getLocalDateString();
-            if (selectedLogDate === today) loadLogsByDate(today);
-        }
-
-        async function saveSettings() { 
-            if (userRole === 'user') return; 
-            const sH = parseInt(document.getElementById('sHour').value);
-            const eH = parseInt(document.getElementById('eHour').value);
-            const isEn = document.getElementById('sEn').checked;
-            if (sH < 0 || sH > 23 || eH < 0 || eH > 23) return alert("Enter 0-23");
-            
-            const updates = { start_hour: sH, end_hour: eH, schedule_enabled: isEn };
-            if (!isEn) updates.system_armed = true;
-            
-            await _supabase.from('system_settings').update(updates).eq('id', activeDeviceId);
-            alert("Updated!"); loadData(); 
-        }
-
-        function showPage(p, el) {
-            const isManager = (userRole === 'admin' || userRole === 'super_admin');
-            if (!isManager && (p === 'notification' || p === 'register')) return alert("Denied");
-            document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(p).classList.add('active'); el.classList.add('active');
-        }
 
         async function handleLogin() {
             const e = document.getElementById('email').value, p = document.getElementById('password').value;
@@ -260,13 +161,112 @@
                     document.querySelectorAll('.admin-nav-only').forEach(el => el.style.display = 'block');
                     loadProfiles();
                 }
-                loadDevices(); // Load Devices
-                loadData(); 
-                setInterval(loadData, 5000);
+                await loadDevices();
+                loadData(); setInterval(loadData, 5000);
             }
         }
 
+        async function loadDevices() {
+            const { data: devices, error } = await _supabase.from('devices').select('*').order('id');
+            if (error) return console.error(error);
+            const list = document.getElementById('device-list');
+            list.innerHTML = '';
+            
+            devices.forEach(d => {
+                const item = document.createElement('div');
+                item.className = `device-item ${d.id === activeDeviceId ? 'active' : ''}`;
+                const delBtn = userRole === 'super_admin' ? `<span onclick="deleteDevice(${d.id}, event)" class="text-rose-500 hover:text-rose-300 ml-2 text-xs">✕</span>` : '';
+                item.innerHTML = `<span>${d.name}</span>${delBtn}`;
+                item.onclick = () => switchDevice(d.id, d.name);
+                list.appendChild(item);
+            });
+            const active = devices.find(d => d.id === activeDeviceId);
+            if (active) document.getElementById('active-device-name').innerText = active.name;
+        }
 
+        function switchDevice(id, name) { activeDeviceId = id; loadDevices(); loadData(); }
+
+        async function addDevice() {
+            const name = prompt("Device Name:"); if (!name) return;
+            const { data, error } = await _supabase.from('devices').insert([{ name }]).select().single();
+            if (data) {
+                await _supabase.from('system_settings').insert([{ id: data.id, system_armed: true, door_status: 'CLOSED' }]);
+                loadDevices();
+            }
+        }
+
+        async function deleteDevice(id, e) { e.stopPropagation(); if(confirm("Delete?")) { await _supabase.from('devices').delete().eq('id', id); activeDeviceId = 1; loadDevices(); } }
+
+        async function loadProfiles() {
+            const { data: profiles } = await _supabase.from('profiles').select('*').order('email');
+            if (profiles) {
+                let h = '';
+                profiles.forEach(p => {
+                    const isSuper = userRole === 'super_admin';
+                    const del = isSuper ? `<button onclick="deleteProfile('${p.id}')" class="text-rose-500 mr-3 text-xs font-bold">DELETE</button>` : '';
+                    const dis = (userRole === 'admin' && p.role === 'super_admin') ? 'disabled' : '';
+                    h += `<div class="flex justify-between items-center p-3 border-b border-white/5"><span class="text-sm truncate mr-2 flex-1">${p.email}</span><div class="flex items-center">${del}<select onchange="updateRole('${p.id}', this.value, '${p.role}')" ${dis} class="bg-slate-800 text-xs p-1 rounded border border-white/10"><option value="user" ${p.role==='user'?'selected':''}>User</option><option value="admin" ${p.role==='admin'?'selected':''}>Admin</option><option value="super_admin" ${p.role==='super_admin'?'selected':''}>Super Admin</option></select></div></div>`;
+                });
+                document.getElementById('user-role-list').innerHTML = h;
+            }
+        }
+
+        async function loadData() {
+            const { data: settings } = await _supabase.from('system_settings').select('*').eq('id', activeDeviceId).single();
+            if (settings) {
+                const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
+                document.getElementById('last-ping-text').innerText = diff > 15 ? `Offline (${diff}s ago)` : 'Online Now';
+                const isM = (userRole !== 'user');
+                document.getElementById('change-status-btn').disabled = (!isM || settings.schedule_enabled);
+                currentArmed = settings.system_armed;
+                document.getElementById('armed-status').innerText = currentArmed ? "ARMED" : "DISARMED";
+                document.getElementById('armed-status').className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed?"text-green-400":"text-rose-500");
+                const dEl = document.getElementById('door-status-text');
+                dEl.innerText = settings.door_status || "UNKNOWN";
+                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter " + (settings.door_status==="OPEN"?"text-rose-500 animate-pulse":"text-blue-400");
+                document.getElementById('sHour').value = settings.start_hour;
+                document.getElementById('eHour').value = settings.end_hour;
+                document.getElementById('sEn').checked = settings.schedule_enabled;
+            }
+            if (userRole !== 'user') {
+                const { data: tg } = await _supabase.from('telegram_users').select('*');
+                if (tg) {
+                    let h = ''; tg.forEach(u => { h += `<div class="flex justify-between items-center mb-4 pb-4 border-b border-white/5"><div><div class="font-bold">${u.name}</div><div class="text-xs text-slate-500">${u.telegram_id}</div></div><button onclick="deleteTelegramUser(${u.id})" class="text-rose-400 text-sm font-bold">REMOVE</button></div>`; });
+                    document.getElementById('tg-table-body').innerHTML = h;
+                }
+            }
+            const t = getLocalDateString(); if (selectedLogDate === t) loadLogsByDate(t);
+        }
+
+        async function loadLogsByDate(dateStr) {
+            const localS = new Date(dateStr + "T00:00:00"), localE = new Date(dateStr + "T23:59:59");
+            const { data: logs } = await _supabase.from('logs').select('*').gte('timestamp', localS.toISOString()).lte('timestamp', localE.toISOString()).order('timestamp', { ascending: false });
+            const tbody = document.getElementById('log-table-body');
+            if (logs && logs.length > 0) {
+                let h = ''; logs.forEach(l => { 
+                    const time = new Date(l.timestamp).toLocaleTimeString('en-GB', { hour12: false });
+                    h += `<tr class="border-b border-white/5"><td class="py-5 px-8 font-bold text-lg">${l.event}</td><td class="py-5 px-8 text-slate-500 text-right italic">${time}</td></tr>`; 
+                });
+                tbody.innerHTML = h;
+            } else { tbody.innerHTML = `<tr><td colspan="2" class="py-20 text-center text-slate-500 italic">No logs for ${dateStr}</td></tr>`; }
+        }
+
+        function handleDateChange(d) { selectedLogDate = d; document.getElementById('selected-date-title').innerText = "Logs for: " + d; loadLogsByDate(d); }
+        async function updateRole(uId, nR, tR) { if (userRole === 'admin' && tR === 'super_admin') return alert("Denied"); await _supabase.from('profiles').update({ role: nR }).eq('id', uId); loadProfiles(); }
+        async function deleteProfile(uId) { if(confirm("Delete?")) { await _supabase.from('profiles').delete().eq('id', uId); loadProfiles(); } }
+        async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
+        async function saveSettings() { 
+            const sH = parseInt(document.getElementById('sHour').value), eH = parseInt(document.getElementById('eHour').value), isEn = document.getElementById('sEn').checked;
+            if (sH < 0 || sH > 23 || eH < 0 || eH > 23) return alert("0-23!");
+            const up = { start_hour: sH, end_hour: eH, schedule_enabled: isEn }; if (!isEn) up.system_armed = true;
+            await _supabase.from('system_settings').update(up).eq('id', activeDeviceId); alert("Updated!"); loadData(); 
+        }
+        async function addTelegramUser() { await _supabase.from('telegram_users').insert([{ name: document.getElementById('tgName').value, telegram_id: document.getElementById('tgID').value }]); loadData(); }
+        async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
+        async function createUser() { await _supabase.auth.signUp({ email: document.getElementById('newEmail').value, password: document.getElementById('newPass').value }); alert("Sent!"); }
+        async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
+        function showPage(p, el) { const isM = (userRole !== 'user'); if (!isM && (p === 'notification' || p === 'register')) return alert("Denied"); document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(p).classList.add('active'); el.classList.add('active'); }
+        checkSession();
     </script>
 </body>
 </html>
