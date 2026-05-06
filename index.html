@@ -61,7 +61,7 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Dashboard -->
+        <!-- Dashboard[cite: 4] -->
         <div id="dashboard" class="page active space-y-10">
             <h2 class="text-4xl font-bold">Live Monitoring <span id="role-badge" class="text-sm bg-slate-700 px-3 py-1 rounded-full ml-4">...</span></h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -79,7 +79,6 @@
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest">⏰ Auto-Schedule Alarm</h3>
                 <div class="flex items-center gap-6 bg-black/20 p-8 rounded-2xl border border-white/5">
                     <div class="flex items-center gap-3">
-                        <!-- 修改：限制输入范围为 0-23[cite: 3] -->
                         <input type="number" id="sHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
                         <span class="text-slate-400 text-xl">: 00 to</span>
                         <input type="number" id="eHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
@@ -94,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Activity Log  -->
+        <!-- Activity Log[cite: 4] -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -117,6 +116,7 @@
             </div>
         </div>
 
+        <!-- Notification[cite: 4] -->
         <div id="notification" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -129,6 +129,7 @@
             </div>
         </div>
 
+        <!-- User Management[cite: 4] -->
         <div id="register" class="page space-y-6">
             <h2 class="text-3xl font-bold">User Management</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -150,7 +151,7 @@
         const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co", SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
         let currentArmed = false, userRole = 'user';
-        let selectedLogDate = new Date().toISOString().split('T')[0]; // default to today
+        let selectedLogDate = new Date().toISOString().split('T')[0];
         const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
 
         document.getElementById('log-date-picker').value = selectedLogDate;
@@ -192,9 +193,13 @@
             loadLogsByDate(date);
         }
 
+        // Use local time to calculate start and end of the selected day, then query Supabase for logs within that range
         async function loadLogsByDate(dateStr) {
-            const startOfDay = `${dateStr}T00:00:00.000Z`;
-            const endOfDay = `${dateStr}T23:59:59.999Z`;
+            const localStart = new Date(dateStr + "T00:00:00");
+            const localEnd = new Date(dateStr + "T23:59:59");
+
+            const startOfDay = localStart.toISOString();
+            const endOfDay = localEnd.toISOString();
 
             const { data: logs, error } = await _supabase
                 .from('logs')
@@ -208,7 +213,12 @@
                 let h = '';
                 logs.forEach(l => {
                     const dateObj = new Date(l.timestamp);
-                    const timeOnly = dateObj.toLocaleTimeString('en-GB', { hour12: false });
+                    const timeOnly = dateObj.toLocaleTimeString('en-GB', { 
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
                     
                     h += `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                             <td class="py-5 px-8 font-bold text-lg">${l.event}</td>
@@ -243,13 +253,11 @@
                 }
             }
 
-            // If choose today's date, load logs immediately
             const today = new Date().toISOString().split('T')[0];
             if (selectedLogDate === today) {
                 loadLogsByDate(today);
             }
 
-            // Load Profiles and Telegram (Admin Only)
             if (userRole !== 'user') {
                 const { data: tgUsers } = await _supabase.from('telegram_users').select('*');
                 if (tgUsers) {
@@ -278,32 +286,16 @@
         }
         async function deleteProfile(userId) { if(userRole === 'super_admin' && confirm("Delete user?")) { await _supabase.from('profiles').delete().eq('id', userId); loadProfiles(); } }
         async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); } }
-        
         async function saveSettings() { 
             if (userRole === 'user') return; 
-            
             const sH = parseInt(document.getElementById('sHour').value);
             const eH = parseInt(document.getElementById('eHour').value);
             const isEn = document.getElementById('sEn').checked;
-
-            if (sH < 0 || sH > 23 || eH < 0 || eH > 23) {
-                alert("Please enter hours between 0 and 23.");
-                return;
-            }
-
-            const updates = { 
-                start_hour: sH, 
-                end_hour: eH, 
-                schedule_enabled: isEn 
-            };
-
+            if (sH < 0 || sH > 23 || eH < 0 || eH > 23) { alert("Please enter hours between 0 and 23."); return; }
+            const updates = { start_hour: sH, end_hour: eH, schedule_enabled: isEn };
             if (!isEn) updates.system_armed = true;
-
-            await _supabase.from('system_settings').update(updates).eq('id', 1); 
-            alert("Updated!"); 
-            loadData(); 
+            await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData(); 
         }
-
         async function addTelegramUser() { const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value; await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]); loadData(); }
         async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
         async function createUser() { const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value; await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } }); alert("Sent!"); }
