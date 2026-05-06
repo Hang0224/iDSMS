@@ -136,19 +136,14 @@
         const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
 
         function showPage(p, el) {
-            // Permission check: non-Admin users are denied access to notification and register
-            if (userRole !== 'admin' && (p === 'notification' || p === 'register')) {
-                alert("Permission Denied");
-                return;
+            // Admin and Super Admin can access all pages
+            const isManager = (userRole === 'admin' || userRole === 'super_admin');
+            if (!isManager && (p === 'notification' || p === 'register')) {
+                alert("Permission Denied"); return;
             }
             document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(p).classList.add('active'); el.classList.add('active');
-        }
-
-        function toggleForgot(show) {
-            document.getElementById('login-form').classList.toggle('hidden', show);
-            document.getElementById('forgot-form').classList.toggle('hidden', !show);
         }
 
         async function handleLogin() {
@@ -157,44 +152,48 @@
             if (error) alert(error.message); else checkSession();
         }
 
-        async function handleResetPassword() {
-            const email = document.getElementById('reset-email').value;
-            const { error } = await _supabase.auth.resetPasswordForEmail(email, { redirectTo: MY_URL });
-            if (error) alert(error.message); else alert("Reset link sent!");
-        }
-
         async function checkSession() {
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
                 document.getElementById('auth-section').classList.add('hidden');
                 const { data: profile } = await _supabase.from('profiles').select('role').eq('id', session.user.id).single();
                 userRole = profile ? profile.role : 'user';
-                document.getElementById('role-badge').innerText = userRole.toUpperCase();
+                document.getElementById('role-badge').innerText = userRole.replace('_', ' ').toUpperCase();
 
-                if (userRole === 'admin') {
-                    // Only show Admin buttons in the sidebar
+                if (userRole === 'admin' || userRole === 'super_admin') {
                     document.querySelectorAll('.admin-nav-only').forEach(el => el.style.display = 'block');
                     loadProfiles();
                 } else {
                     document.getElementById('save-settings-btn').disabled = true;
-                    document.getElementById('change-status-btn').title = "Access denied: Admin only";
                 }
                 loadData(); setInterval(loadData, 5000);
             }
         }
 
         async function loadProfiles() {
-            // Get all user data
             const { data: profiles } = await _supabase.from('profiles').select('*').order('email');
             if (profiles) {
                 let h = '';
                 profiles.forEach(p => {
+                    const isSuper = userRole === 'super_admin';
+                    const isManager = (userRole === 'admin' || userRole === 'super_admin');
+                    
+                    // Only Super Admin sees DELETE button
+                    const deleteBtn = isSuper ? `<button onclick="deleteProfile('${p.id}')" class="text-rose-500 font-bold text-xs mr-3 hover:underline">DELETE</button>` : '';
+                    
+                    // Both Admin and Super Admin can change roles (dropdown is NOT disabled)
+                    const selectDisabled = !isManager ? 'disabled' : '';
+
                     h += `<div class="flex justify-between items-center p-3 border-b border-white/5">
-                        <span class="text-sm truncate mr-2">${p.email}</span>
-                        <select onchange="updateRole('${p.id}', this.value)" class="bg-slate-800 text-xs p-1 rounded outline-none border border-white/10">
-                            <option value="user" ${p.role === 'user' ? 'selected' : ''}>User</option>
-                            <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
-                        </select>
+                        <span class="text-sm truncate mr-2 flex-1">${p.email}</span>
+                        <div class="flex items-center">
+                            ${deleteBtn}
+                            <select onchange="updateRole('${p.id}', this.value)" ${selectDisabled} class="bg-slate-800 text-xs p-1 rounded outline-none border border-white/10">
+                                <option value="user" ${p.role === 'user' ? 'selected' : ''}>User</option>
+                                <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                <option value="super_admin" ${p.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                            </select>
+                        </div>
                     </div>`;
                 });
                 document.getElementById('user-role-list').innerHTML = h;
@@ -202,8 +201,18 @@
         }
 
         async function updateRole(userId, newRole) {
+            if(userRole !== 'admin' && userRole !== 'super_admin') return alert("Permission Denied");
             const { error } = await _supabase.from('profiles').update({ role: newRole }).eq('id', userId);
             if (error) alert(error.message); else { alert("Role updated!"); loadProfiles(); }
+        }
+
+        async function deleteProfile(userId) {
+            // Strictly Super Admin only
+            if(userRole !== 'super_admin') return alert("Only Super Admin can delete users");
+            if(confirm("Confirm to delete this user profile?")) {
+                const { error } = await _supabase.from('profiles').delete().eq('id', userId);
+                if (error) alert(error.message); else { alert("User removed!"); loadProfiles(); }
+            }
         }
 
         async function loadData() {
@@ -212,22 +221,33 @@
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
                 const scheduleOn = settings.schedule_enabled;
-                const changeBtn = document.getElementById('change-status-btn');
-                changeBtn.disabled = (userRole !== 'admin' || scheduleOn);
+                
+                // Admin and Super Admin can toggle
+                const isManager = (userRole === 'admin' || userRole === 'super_admin');
+                document.getElementById('change-status-btn').disabled = (!isManager || scheduleOn);
+                
                 currentArmed = settings.system_armed;
                 const sEl = document.getElementById('armed-status');
                 sEl.innerText = currentArmed ? "ARMED" : "DISARMED";
                 sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
+                
                 const dEl = document.getElementById('door-status-text');
                 dEl.innerText = settings.door_status || "UNKNOWN";
                 dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
+                
                 document.getElementById('sHour').value = settings.start_hour;
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = scheduleOn;
-                if (userRole !== 'admin') {
+                
+                // Allow Admin/Super Admin to edit schedule
+                if (!isManager) {
                     document.getElementById('sHour').disabled = true;
                     document.getElementById('eHour').disabled = true;
                     document.getElementById('sEn').disabled = true;
+                } else {
+                    document.getElementById('sHour').disabled = false;
+                    document.getElementById('eHour').disabled = false;
+                    document.getElementById('sEn').disabled = false;
                 }
             }
             const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(10);
@@ -235,7 +255,7 @@
                 let h = ''; logs.forEach(l => { h += `<tr class="border-b border-white/5"><td class="py-4 font-bold text-lg">${l.event}</td><td class="py-4 text-slate-500 font-mono text-sm text-right">${l.timestamp}</td></tr>`; });
                 document.getElementById('log-table-body').innerHTML = h;
             }
-            if (userRole === 'admin') {
+            if (userRole !== 'user') {
                 const { data: tgUsers } = await _supabase.from('telegram_users').select('*');
                 if (tgUsers) {
                     let h = ''; tgUsers.forEach(u => { h += `<div class="flex justify-between items-center mb-4 pb-4 border-b border-white/5"><div><div class="font-bold">${u.name}</div><div class="text-xs text-slate-500">${u.telegram_id}</div></div><button onclick="deleteTelegramUser(${u.id})" class="text-rose-400 text-sm font-bold">REMOVE</button></div>`; });
@@ -244,13 +264,16 @@
             }
         }
 
-        async function toggleAlarm() { if (userRole === 'admin') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); } }
-        async function saveSettings() { if (userRole === 'admin') { const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked }; await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData(); } }
-        async function addTelegramUser() { if (userRole === 'admin') { const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value; await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]); loadData(); } }
-        async function deleteTelegramUser(id) { if (userRole === 'admin' && confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
-        async function createUser() { if (userRole === 'admin') { const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value; await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } }); alert("Confirmation email sent!"); } }
+        async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); } }
+        async function saveSettings() { if (userRole !== 'user') { const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked }; await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData(); } }
+        async function addTelegramUser() { if (userRole !== 'user') { const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value; await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]); loadData(); } }
+        async function deleteTelegramUser(id) { if (userRole !== 'user' && confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
+        async function createUser() { if (userRole !== 'user') { const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value; await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } }); alert("Confirmation email sent!"); } }
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
-
+        
+        function toggleForgot(show) { document.getElementById('login-form').classList.toggle('hidden', show); document.getElementById('forgot-form').classList.toggle('hidden', !show); }
+        async function handleResetPassword() { const email = document.getElementById('reset-email').value; await _supabase.auth.resetPasswordForEmail(email, { redirectTo: MY_URL }); alert("Reset link sent!"); }
+        
         _supabase.auth.onAuthStateChange(async (event) => {
             if (event === "PASSWORD_RECOVERY") {
                 const pass = prompt("New password:");
