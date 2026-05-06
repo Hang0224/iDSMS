@@ -192,26 +192,31 @@
         }
 
         async function loadLogsByDate(dateStr) {
-            const startOfDay = `${dateStr}T00:00:00Z`;
-            const endOfDay = `${dateStr}T23:59:59Z`;
+            const startOfDay = `${dateStr}T00:00:00.000Z`;
+            const endOfDay = `${dateStr}T23:59:59.999Z`;
 
             const { data: logs, error } = await _supabase
                 .from('logs')
                 .select('*')
                 .gte('timestamp', startOfDay)
                 .lte('timestamp', endOfDay)
-                .order('id', { ascending: false });
+                .order('timestamp', { ascending: false });
 
             const tbody = document.getElementById('log-table-body');
             if (logs && logs.length > 0) {
                 let h = '';
                 logs.forEach(l => {
-                    const timeOnly = l.timestamp.split('T')[1].split('.')[0];
-                    h += `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="py-5 px-8 font-bold text-lg">${l.event}</td><td class="py-5 px-8 text-slate-500 font-mono text-sm text-right italic">${timeOnly}</td></tr>`;
+                    const dateObj = new Date(l.timestamp);
+                    const timeOnly = dateObj.toLocaleTimeString('en-GB', { hour12: false });
+                    
+                    h += `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                            <td class="py-5 px-8 font-bold text-lg">${l.event}</td>
+                            <td class="py-5 px-8 text-slate-500 font-mono text-sm text-right italic">${timeOnly}</td>
+                        </tr>`;
                 });
                 tbody.innerHTML = h;
             } else {
-                tbody.innerHTML = `<tr><td colspan="2" class="py-20 text-center text-slate-500 italic">No activity recorded for this date.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="2" class="py-20 text-center text-slate-500 italic">No activity recorded for ${dateStr}.</td></tr>`;
             }
         }
 
