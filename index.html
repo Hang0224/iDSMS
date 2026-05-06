@@ -92,7 +92,6 @@
             </div>
         </div>
 
-        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
@@ -136,7 +135,6 @@
         const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
 
         function showPage(p, el) {
-            // Admin and Super Admin can access all pages
             const isManager = (userRole === 'admin' || userRole === 'super_admin');
             if (!isManager && (p === 'notification' || p === 'register')) {
                 alert("Permission Denied"); return;
@@ -176,19 +174,23 @@
                 let h = '';
                 profiles.forEach(p => {
                     const isSuper = userRole === 'super_admin';
-                    const isManager = (userRole === 'admin' || userRole === 'super_admin');
+                    const isTargetSuper = p.role === 'super_admin';
                     
-                    // Only Super Admin sees DELETE button
+                    // Only Super Admin can see Delete button
                     const deleteBtn = isSuper ? `<button onclick="deleteProfile('${p.id}')" class="text-rose-500 font-bold text-xs mr-3 hover:underline">DELETE</button>` : '';
                     
-                    // Both Admin and Super Admin can change roles (dropdown is NOT disabled)
-                    const selectDisabled = !isManager ? 'disabled' : '';
+                    let selectDisabled = '';
+                    if (userRole === 'admin' && isTargetSuper) {
+                        selectDisabled = 'disabled';
+                    } else if (userRole === 'user') {
+                        selectDisabled = 'disabled';
+                    }
 
                     h += `<div class="flex justify-between items-center p-3 border-b border-white/5">
                         <span class="text-sm truncate mr-2 flex-1">${p.email}</span>
                         <div class="flex items-center">
                             ${deleteBtn}
-                            <select onchange="updateRole('${p.id}', this.value)" ${selectDisabled} class="bg-slate-800 text-xs p-1 rounded outline-none border border-white/10">
+                            <select onchange="updateRole('${p.id}', this.value, '${p.role}')" ${selectDisabled} class="bg-slate-800 text-xs p-1 rounded outline-none border border-white/10 disabled:opacity-50">
                                 <option value="user" ${p.role === 'user' ? 'selected' : ''}>User</option>
                                 <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
                                 <option value="super_admin" ${p.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
@@ -200,14 +202,18 @@
             }
         }
 
-        async function updateRole(userId, newRole) {
-            if(userRole !== 'admin' && userRole !== 'super_admin') return alert("Permission Denied");
+        async function updateRole(userId, newRole, targetCurrentRole) {
+            // Admin cannot modify Super Admin roles
+            if (userRole === 'admin' && targetCurrentRole === 'super_admin') {
+                alert("Permission Denied: Admins cannot modify Super Admin roles.");
+                loadProfiles(); 
+                return;
+            }
             const { error } = await _supabase.from('profiles').update({ role: newRole }).eq('id', userId);
             if (error) alert(error.message); else { alert("Role updated!"); loadProfiles(); }
         }
 
         async function deleteProfile(userId) {
-            // Strictly Super Admin only
             if(userRole !== 'super_admin') return alert("Only Super Admin can delete users");
             if(confirm("Confirm to delete this user profile?")) {
                 const { error } = await _supabase.from('profiles').delete().eq('id', userId);
@@ -221,8 +227,6 @@
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
                 const scheduleOn = settings.schedule_enabled;
-                
-                // Admin and Super Admin can toggle
                 const isManager = (userRole === 'admin' || userRole === 'super_admin');
                 document.getElementById('change-status-btn').disabled = (!isManager || scheduleOn);
                 
@@ -239,7 +243,6 @@
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = scheduleOn;
                 
-                // Allow Admin/Super Admin to edit schedule
                 if (!isManager) {
                     document.getElementById('sHour').disabled = true;
                     document.getElementById('eHour').disabled = true;
