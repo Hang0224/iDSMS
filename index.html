@@ -45,7 +45,7 @@
         <div class="mb-8">
             <label class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] block mb-4">Select Device</label>
             <div id="device-list" class="space-y-1"></div>
-            <button onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
+            <button id="add-device-btn" onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
         </div>
         <nav class="flex-1 space-y-1">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
@@ -87,6 +87,7 @@
             </div>
         </div>
 
+        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -167,15 +168,12 @@
         }
 
         async function loadDevices() {
-            const { data: devices, error } = await _supabase.from('devices').select('*').order('id');
-            if (error) return console.error(error);
-            const list = document.getElementById('device-list');
-            list.innerHTML = '';
-            
+            const { data: devices } = await _supabase.from('devices').select('*').order('id');
+            const list = document.getElementById('device-list'); list.innerHTML = '';
             devices.forEach(d => {
                 const item = document.createElement('div');
                 item.className = `device-item ${d.id === activeDeviceId ? 'active' : ''}`;
-                const delBtn = userRole === 'super_admin' ? `<span onclick="deleteDevice(${d.id}, event)" class="text-rose-500 hover:text-rose-300 ml-2 text-xs">✕</span>` : '';
+                const delBtn = userRole === 'super_admin' ? `<span onclick="deleteDevice(${d.id}, event)" class="text-xs text-rose-500 hover:text-rose-300 ml-2">✕</span>` : '';
                 item.innerHTML = `<span>${d.name}</span>${delBtn}`;
                 item.onclick = () => switchDevice(d.id, d.name);
                 list.appendChild(item);
@@ -205,7 +203,7 @@
                     const isSuper = userRole === 'super_admin';
                     const del = isSuper ? `<button onclick="deleteProfile('${p.id}')" class="text-rose-500 mr-3 text-xs font-bold">DELETE</button>` : '';
                     const dis = (userRole === 'admin' && p.role === 'super_admin') ? 'disabled' : '';
-                    h += `<div class="flex justify-between items-center p-3 border-b border-white/5"><span class="text-sm truncate mr-2 flex-1">${p.email}</span><div class="flex items-center">${del}<select onchange="updateRole('${p.id}', this.value, '${p.role}')" ${dis} class="bg-slate-800 text-xs p-1 rounded border border-white/10"><option value="user" ${p.role==='user'?'selected':''}>User</option><option value="admin" ${p.role==='admin'?'selected':''}>Admin</option><option value="super_admin" ${p.role==='super_admin'?'selected':''}>Super Admin</option></select></div></div>`;
+                    h += `<div class="flex justify-between items-center p-3 border-b border-white/5"><span class="text-sm flex-1">${p.email}</span><div class="flex items-center">${del}<select onchange="updateRole('${p.id}', this.value, '${p.role}')" ${dis} class="bg-slate-800 text-xs p-1 rounded border border-white/10"><option value="user" ${p.role==='user'?'selected':''}>User</option><option value="admin" ${p.role==='admin'?'selected':''}>Admin</option><option value="super_admin" ${p.role==='super_admin'?'selected':''}>Super Admin</option></select></div></div>`;
                 });
                 document.getElementById('user-role-list').innerHTML = h;
             }
@@ -216,8 +214,14 @@
             if (settings) {
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? `Offline (${diff}s ago)` : 'Online Now';
-                const isM = (userRole !== 'user');
-                document.getElementById('change-status-btn').disabled = (!isM || settings.schedule_enabled);
+                
+                const isManager = (userRole === 'admin' || userRole === 'super_admin');
+                document.getElementById('change-status-btn').disabled = (!isManager || settings.schedule_enabled);
+                document.getElementById('save-settings-btn').disabled = !isManager;
+                document.getElementById('sHour').disabled = !isManager;
+                document.getElementById('eHour').disabled = !isManager;
+                document.getElementById('sEn').disabled = !isManager;
+
                 currentArmed = settings.system_armed;
                 document.getElementById('armed-status').innerText = currentArmed ? "ARMED" : "DISARMED";
                 document.getElementById('armed-status').className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed?"text-green-400":"text-rose-500");
@@ -254,13 +258,19 @@
         function handleDateChange(d) { selectedLogDate = d; document.getElementById('selected-date-title').innerText = "Logs for: " + d; loadLogsByDate(d); }
         async function updateRole(uId, nR, tR) { if (userRole === 'admin' && tR === 'super_admin') return alert("Denied"); await _supabase.from('profiles').update({ role: nR }).eq('id', uId); loadProfiles(); }
         async function deleteProfile(uId) { if(confirm("Delete?")) { await _supabase.from('profiles').delete().eq('id', uId); loadProfiles(); } }
-        async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
+        async function toggleAlarm() { if (userRole === 'admin' || userRole === 'super_admin') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
+        
         async function saveSettings() { 
+            if (userRole !== 'admin' && userRole !== 'super_admin') {
+                alert("Permission Denied: Only Admins can modify settings.");
+                return;
+            }
             const sH = parseInt(document.getElementById('sHour').value), eH = parseInt(document.getElementById('eHour').value), isEn = document.getElementById('sEn').checked;
             if (sH < 0 || sH > 23 || eH < 0 || eH > 23) return alert("0-23!");
             const up = { start_hour: sH, end_hour: eH, schedule_enabled: isEn }; if (!isEn) up.system_armed = true;
             await _supabase.from('system_settings').update(up).eq('id', activeDeviceId); alert("Updated!"); loadData(); 
         }
+
         async function addTelegramUser() { await _supabase.from('telegram_users').insert([{ name: document.getElementById('tgName').value, telegram_id: document.getElementById('tgID').value }]); loadData(); }
         async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
         async function createUser() { await _supabase.auth.signUp({ email: document.getElementById('newEmail').value, password: document.getElementById('newPass').value }); alert("Sent!"); }
