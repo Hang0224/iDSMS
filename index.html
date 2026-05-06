@@ -20,7 +20,9 @@
         .page.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         button:disabled { opacity: 0.25; cursor: not-allowed; }
-        .admin-only { display: none; } /* Hide Admin-only items */
+        
+        /* 修正：只用于隐藏侧边栏按钮，不影响页面显示逻辑 */
+        .admin-nav-only { display: none; } 
     </style>
 </head>
 <body class="flex">
@@ -52,8 +54,9 @@
         <nav class="flex-1 space-y-2">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
             <div class="nav-item" onclick="showPage('activity', this)">• Activity log</div>
-            <div class="nav-item admin-only" id="nav-notification" onclick="showPage('notification', this)">• Notification</div>
-            <div class="nav-item admin-only" id="nav-register" onclick="showPage('register', this)">• User management</div>
+            <!-- 仅在侧边栏使用隐藏类 -->
+            <div id="nav-notification" class="nav-item admin-nav-only" onclick="showPage('notification', this)">• Notification</div>
+            <div id="nav-register" class="nav-item admin-nav-only" onclick="showPage('register', this)">• User management</div>
         </nav>
         <button onclick="handleLogout()" class="text-rose-400 font-bold text-left text-xl hover:opacity-70 transition">Sign out</button>
     </div>
@@ -98,8 +101,8 @@
             <div class="glass"><table class="w-full text-left"><tbody id="log-table-body"></tbody></table></div>
         </div>
 
-        <!-- Notification (Admin Only) -->
-        <div id="notification" class="page space-y-6 admin-only">
+        <!-- Notification -->
+        <div id="notification" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="glass">
@@ -111,8 +114,8 @@
             </div>
         </div>
 
-        <!-- User Management (Admin Only) -->
-        <div id="register" class="page space-y-6 admin-only">
+        <!-- User Management -->
+        <div id="register" class="page space-y-6">
             <h2 class="text-3xl font-bold">User Management</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="glass">
@@ -123,7 +126,7 @@
                 </div>
                 <div class="glass">
                     <h3 class="mb-4 font-bold">Role Settings</h3>
-                    <div id="user-role-list" class="space-y-4"></div>
+                    <div id="user-role-list" class="space-y-4 max-h-[400px] overflow-y-auto"></div>
                 </div>
             </div>
         </div>
@@ -132,11 +135,15 @@
     <script>
         const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co", SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
-        let currentArmed = false;
-        let userRole = 'user'; // Default role, will be updated after login
+        let currentArmed = false, userRole = 'user';
         const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
 
         function showPage(p, el) {
+            // Permission check: non-Admin users are denied access to notification and register
+            if (userRole !== 'admin' && (p === 'notification' || p === 'register')) {
+                alert("Permission Denied");
+                return;
+            }
             document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(p).classList.add('active'); el.classList.add('active');
@@ -163,34 +170,31 @@
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
                 document.getElementById('auth-section').classList.add('hidden');
-                
-                // Get user role from profiles table
                 const { data: profile } = await _supabase.from('profiles').select('role').eq('id', session.user.id).single();
                 userRole = profile ? profile.role : 'user';
-                
                 document.getElementById('role-badge').innerText = userRole.toUpperCase();
 
-                // Permission Control: Hide Admin-only elements
                 if (userRole === 'admin') {
-                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
-                    loadProfiles(); // Only admins need to load the user list
+                    // Only show Admin buttons in the sidebar
+                    document.querySelectorAll('.admin-nav-only').forEach(el => el.style.display = 'block');
+                    loadProfiles();
                 } else {
                     document.getElementById('save-settings-btn').disabled = true;
                     document.getElementById('change-status-btn').title = "Access denied: Admin only";
                 }
-
                 loadData(); setInterval(loadData, 5000);
             }
         }
 
         async function loadProfiles() {
-            const { data: profiles } = await _supabase.from('profiles').select('*');
+            // Get all user data
+            const { data: profiles } = await _supabase.from('profiles').select('*').order('email');
             if (profiles) {
                 let h = '';
                 profiles.forEach(p => {
                     h += `<div class="flex justify-between items-center p-3 border-b border-white/5">
-                        <span class="text-sm">${p.email}</span>
-                        <select onchange="updateRole('${p.id}', this.value)" class="bg-slate-800 text-xs p-1 rounded">
+                        <span class="text-sm truncate mr-2">${p.email}</span>
+                        <select onchange="updateRole('${p.id}', this.value)" class="bg-slate-800 text-xs p-1 rounded outline-none border border-white/10">
                             <option value="user" ${p.role === 'user' ? 'selected' : ''}>User</option>
                             <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
@@ -202,7 +206,7 @@
 
         async function updateRole(userId, newRole) {
             const { error } = await _supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-            if (error) alert(error.message); else alert("Role updated!");
+            if (error) alert(error.message); else { alert("Role updated!"); loadProfiles(); }
         }
 
         async function loadData() {
@@ -210,39 +214,30 @@
             if (settings) {
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
                 document.getElementById('last-ping-text').innerText = diff > 15 ? 'Offline (' + diff + 's ago)' : 'Online Now';
-                
-                // Permission Control: Only Admin can change status, and only when schedule is off
                 const scheduleOn = settings.schedule_enabled;
                 const changeBtn = document.getElementById('change-status-btn');
                 changeBtn.disabled = (userRole !== 'admin' || scheduleOn);
-
                 currentArmed = settings.system_armed;
                 const sEl = document.getElementById('armed-status');
                 sEl.innerText = currentArmed ? "ARMED" : "DISARMED";
                 sEl.className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed ? "text-green-400" : "text-rose-500");
-
                 const dEl = document.getElementById('door-status-text');
                 dEl.innerText = settings.door_status || "UNKNOWN";
                 dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
-
                 document.getElementById('sHour').value = settings.start_hour;
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = scheduleOn;
-                
-                // Permission Control: Only Admin can edit schedule settings
                 if (userRole !== 'admin') {
                     document.getElementById('sHour').disabled = true;
                     document.getElementById('eHour').disabled = true;
                     document.getElementById('sEn').disabled = true;
                 }
             }
-            // Load activity logs
             const { data: logs } = await _supabase.from('logs').select('*').order('id', { ascending: false }).limit(10);
             if (logs) {
                 let h = ''; logs.forEach(l => { h += `<tr class="border-b border-white/5"><td class="py-4 font-bold text-lg">${l.event}</td><td class="py-4 text-slate-500 font-mono text-sm text-right">${l.timestamp}</td></tr>`; });
                 document.getElementById('log-table-body').innerHTML = h;
             }
-            // Load Telegram users (Admin only)
             if (userRole === 'admin') {
                 const { data: tgUsers } = await _supabase.from('telegram_users').select('*');
                 if (tgUsers) {
@@ -252,31 +247,19 @@
             }
         }
 
-        async function toggleAlarm() { 
-            if (userRole !== 'admin') return;
-            await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); 
-            loadData(); 
-        }
-
-        async function saveSettings() {
-            if (userRole !== 'admin') return;
-            const updates = { 
-                start_hour: parseInt(document.getElementById('sHour').value), 
-                end_hour: parseInt(document.getElementById('eHour').value), 
-                schedule_enabled: document.getElementById('sEn').checked 
-            };
-            await _supabase.from('system_settings').update(updates).eq('id', 1); 
-            alert("Settings Updated!");
-            loadData();
-        }
-
-        async function createUser() {
-            const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value;
-            const { error } = await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } });
-            if (error) alert(error.message); else alert("Confirmation email sent!");
-        }
-
+        async function toggleAlarm() { if (userRole === 'admin') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); } }
+        async function saveSettings() { if (userRole === 'admin') { const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked }; await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData(); } }
+        async function addTelegramUser() { if (userRole === 'admin') { const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value; await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]); loadData(); } }
+        async function deleteTelegramUser(id) { if (userRole === 'admin' && confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
+        async function createUser() { if (userRole === 'admin') { const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value; await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } }); alert("Confirmation email sent!"); } }
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
+
+        _supabase.auth.onAuthStateChange(async (event) => {
+            if (event === "PASSWORD_RECOVERY") {
+                const pass = prompt("New password:");
+                if (pass) { await _supabase.auth.updateUser({ password: pass }); alert("Updated!"); window.location.href = MY_URL; }
+            }
+        });
         checkSession();
     </script>
 </body>
