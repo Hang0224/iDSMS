@@ -45,7 +45,7 @@
         <div class="mb-8">
             <label class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] block mb-4">Select Device</label>
             <div id="device-list" class="space-y-1"></div>
-            <button onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
+            <button id="add-device-btn" onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
         </div>
         <nav class="flex-1 space-y-1">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
@@ -167,7 +167,8 @@
         }
 
         async function loadDevices() {
-            const { data: devices } = await _supabase.from('devices').select('*').order('id');
+            const { data: devices, error } = await _supabase.from('devices').select('*').order('id');
+            if (error) return console.error(error);
             const list = document.getElementById('device-list'); list.innerHTML = '';
             devices.forEach(d => {
                 const item = document.createElement('div');
@@ -186,13 +187,15 @@
         async function addDevice() {
             const name = prompt("Device Name:"); if (!name) return;
             const { data, error } = await _supabase.from('devices').insert([{ name }]).select().single();
+            if (error) { alert("Error adding device: " + error.message); return; }
             if (data) {
-                await _supabase.from('system_settings').insert([{ id: data.id, system_armed: true, door_status: 'CLOSED' }]);
-                loadDevices();
+                const { error: sErr } = await _supabase.from('system_settings').insert([{ id: data.id, system_armed: true, door_status: 'CLOSED' }]);
+                if (sErr) alert("Init settings failed: " + sErr.message);
+                else { alert("Device added!"); loadDevices(); }
             }
         }
 
-        async function deleteDevice(id, e) { e.stopPropagation(); if(confirm("Delete?")) { await _supabase.from('devices').delete().eq('id', id); activeDeviceId = 1; loadDevices(); } }
+        async function deleteDevice(id, e) { e.stopPropagation(); if(confirm("Delete this device?")) { await _supabase.from('devices').delete().eq('id', id); activeDeviceId = 1; loadDevices(); } }
 
         async function loadProfiles() {
             const { data: profiles } = await _supabase.from('profiles').select('*').order('email');
