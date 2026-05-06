@@ -45,7 +45,7 @@
         <div class="mb-8">
             <label class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] block mb-4">Select Device</label>
             <div id="device-list" class="space-y-1"></div>
-            <button id="add-device-btn" onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
+            <button onclick="addDevice()" class="admin-nav-only mt-3 text-[10px] text-blue-400 font-bold hover:text-blue-300 transition">+ ADD DEVICE</button>
         </div>
         <nav class="flex-1 space-y-1">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
@@ -87,7 +87,6 @@
             </div>
         </div>
 
-        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -244,7 +243,12 @@
 
         async function loadLogsByDate(dateStr) {
             const localS = new Date(dateStr + "T00:00:00"), localE = new Date(dateStr + "T23:59:59");
-            const { data: logs } = await _supabase.from('logs').select('*').gte('timestamp', localS.toISOString()).lte('timestamp', localE.toISOString()).order('timestamp', { ascending: false });
+            const { data: logs } = await _supabase.from('logs').select('*')
+                .eq('device_id', activeDeviceId)
+                .gte('timestamp', localS.toISOString())
+                .lte('timestamp', localE.toISOString())
+                .order('timestamp', { ascending: false });
+                
             const tbody = document.getElementById('log-table-body');
             if (logs && logs.length > 0) {
                 let h = ''; logs.forEach(l => { 
@@ -252,7 +256,7 @@
                     h += `<tr class="border-b border-white/5"><td class="py-5 px-8 font-bold text-lg">${l.event}</td><td class="py-5 px-8 text-slate-500 text-right italic">${time}</td></tr>`; 
                 });
                 tbody.innerHTML = h;
-            } else { tbody.innerHTML = `<tr><td colspan="2" class="py-20 text-center text-slate-500 italic">No logs for ${dateStr}</td></tr>`; }
+            } else { tbody.innerHTML = `<tr><td colspan="2" class="py-20 text-center text-slate-500 italic">No logs for this device</td></tr>`; }
         }
 
         function handleDateChange(d) { selectedLogDate = d; document.getElementById('selected-date-title').innerText = "Logs for: " + d; loadLogsByDate(d); }
@@ -261,10 +265,7 @@
         async function toggleAlarm() { if (userRole === 'admin' || userRole === 'super_admin') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
         
         async function saveSettings() { 
-            if (userRole !== 'admin' && userRole !== 'super_admin') {
-                alert("Permission Denied: Only Admins can modify settings.");
-                return;
-            }
+            if (userRole !== 'admin' && userRole !== 'super_admin') return alert("Denied");
             const sH = parseInt(document.getElementById('sHour').value), eH = parseInt(document.getElementById('eHour').value), isEn = document.getElementById('sEn').checked;
             if (sH < 0 || sH > 23 || eH < 0 || eH > 23) return alert("0-23!");
             const up = { start_hour: sH, end_hour: eH, schedule_enabled: isEn }; if (!isEn) up.system_armed = true;
