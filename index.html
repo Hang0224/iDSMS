@@ -61,7 +61,7 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Dashboard[cite: 4] -->
+        <!-- Dashboard -->
         <div id="dashboard" class="page active space-y-10">
             <h2 class="text-4xl font-bold">Live Monitoring <span id="role-badge" class="text-sm bg-slate-700 px-3 py-1 rounded-full ml-4">...</span></h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -93,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Activity Log[cite: 4] -->
+        <!-- Activity Log -->
         <div id="activity" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Activity History</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -116,7 +116,6 @@
             </div>
         </div>
 
-        <!-- Notification[cite: 4] -->
         <div id="notification" class="page space-y-6">
             <h2 class="text-3xl font-bold mb-8">Telegram Notifications</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -129,7 +128,6 @@
             </div>
         </div>
 
-        <!-- User Management[cite: 4] -->
         <div id="register" class="page space-y-6">
             <h2 class="text-3xl font-bold">User Management</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -151,9 +149,16 @@
         const SB_URL = "https://cpdsktvenfullcsiezbl.supabase.co", SB_KEY = "sb_publishable_XJoko1-ABFMm9quT1eGSCQ_XCecjXE0";
         const _supabase = supabase.createClient(SB_URL, SB_KEY);
         let currentArmed = false, userRole = 'user';
-        let selectedLogDate = new Date().toISOString().split('T')[0];
         const MY_URL = 'https://hang0224.github.io/iDSMS/'; 
 
+        // Get Local Date String in YYYY-MM-DD format
+        function getLocalDateString() {
+            const now = new Date();
+            const offset = now.getTimezoneOffset() * 60000; 
+            return (new Date(now - offset)).toISOString().split('T')[0];
+        }
+
+        let selectedLogDate = getLocalDateString();
         document.getElementById('log-date-picker').value = selectedLogDate;
 
         function showPage(p, el) {
@@ -193,11 +198,9 @@
             loadLogsByDate(date);
         }
 
-        // Use local time to calculate start and end of the selected day, then query Supabase for logs within that range
         async function loadLogsByDate(dateStr) {
             const localStart = new Date(dateStr + "T00:00:00");
             const localEnd = new Date(dateStr + "T23:59:59");
-
             const startOfDay = localStart.toISOString();
             const endOfDay = localEnd.toISOString();
 
@@ -214,16 +217,9 @@
                 logs.forEach(l => {
                     const dateObj = new Date(l.timestamp);
                     const timeOnly = dateObj.toLocaleTimeString('en-GB', { 
-                        hour12: false,
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
+                        hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
                     });
-                    
-                    h += `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                            <td class="py-5 px-8 font-bold text-lg">${l.event}</td>
-                            <td class="py-5 px-8 text-slate-500 font-mono text-sm text-right italic">${timeOnly}</td>
-                        </tr>`;
+                    h += `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="py-5 px-8 font-bold text-lg">${l.event}</td><td class="py-5 px-8 text-slate-500 font-mono text-sm text-right italic">${timeOnly}</td></tr>`;
                 });
                 tbody.innerHTML = h;
             } else {
@@ -253,7 +249,7 @@
                 }
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             if (selectedLogDate === today) {
                 loadLogsByDate(today);
             }
