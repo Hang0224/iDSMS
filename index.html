@@ -79,9 +79,10 @@
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest">⏰ Auto-Schedule Alarm</h3>
                 <div class="flex items-center gap-6 bg-black/20 p-8 rounded-2xl border border-white/5">
                     <div class="flex items-center gap-3">
-                        <input type="number" id="sHour" class="w-20 p-3 text-center text-3xl font-bold">
+                        <!-- 修改：限制输入范围为 0-23[cite: 3] -->
+                        <input type="number" id="sHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
                         <span class="text-slate-400 text-xl">: 00 to</span>
-                        <input type="number" id="eHour" class="w-20 p-3 text-center text-3xl font-bold">
+                        <input type="number" id="eHour" min="0" max="23" class="w-20 p-3 text-center text-3xl font-bold">
                         <span class="text-slate-400 text-xl">: 00</span>
                     </div>
                     <label class="ml-auto flex items-center gap-4 cursor-pointer">
@@ -277,7 +278,32 @@
         }
         async function deleteProfile(userId) { if(userRole === 'super_admin' && confirm("Delete user?")) { await _supabase.from('profiles').delete().eq('id', userId); loadProfiles(); } }
         async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', 1); loadData(); } }
-        async function saveSettings() { if (userRole !== 'user') { const updates = { start_hour: parseInt(document.getElementById('sHour').value), end_hour: parseInt(document.getElementById('eHour').value), schedule_enabled: document.getElementById('sEn').checked }; await _supabase.from('system_settings').update(updates).eq('id', 1); alert("Updated!"); loadData(); } }
+        
+        async function saveSettings() { 
+            if (userRole === 'user') return; 
+            
+            const sH = parseInt(document.getElementById('sHour').value);
+            const eH = parseInt(document.getElementById('eHour').value);
+            const isEn = document.getElementById('sEn').checked;
+
+            if (sH < 0 || sH > 23 || eH < 0 || eH > 23) {
+                alert("Please enter hours between 0 and 23.");
+                return;
+            }
+
+            const updates = { 
+                start_hour: sH, 
+                end_hour: eH, 
+                schedule_enabled: isEn 
+            };
+
+            if (!isEn) updates.system_armed = true;
+
+            await _supabase.from('system_settings').update(updates).eq('id', 1); 
+            alert("Updated!"); 
+            loadData(); 
+        }
+
         async function addTelegramUser() { const n = document.getElementById('tgName').value, id = document.getElementById('tgID').value; await _supabase.from('telegram_users').insert([{ name: n, telegram_id: id }]); loadData(); }
         async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
         async function createUser() { const e = document.getElementById('newEmail').value, p = document.getElementById('newPass').value; await _supabase.auth.signUp({ email: e, password: p, options: { emailRedirectTo: MY_URL } }); alert("Sent!"); }
