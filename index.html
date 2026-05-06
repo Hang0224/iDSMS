@@ -20,8 +20,6 @@
         .page.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         button:disabled { opacity: 0.25; cursor: not-allowed; }
-        
-        /* 修正：只用于隐藏侧边栏按钮，不影响页面显示逻辑 */
         .admin-nav-only { display: none; } 
     </style>
 </head>
@@ -54,7 +52,6 @@
         <nav class="flex-1 space-y-2">
             <div class="nav-item active" onclick="showPage('dashboard', this)">• Dashboard</div>
             <div class="nav-item" onclick="showPage('activity', this)">• Activity log</div>
-            <!-- 仅在侧边栏使用隐藏类 -->
             <div id="nav-notification" class="nav-item admin-nav-only" onclick="showPage('notification', this)">• Notification</div>
             <div id="nav-register" class="nav-item admin-nav-only" onclick="showPage('register', this)">• User management</div>
         </nav>
