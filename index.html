@@ -174,9 +174,19 @@
         async function checkSession() {
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
+                // Check if profile exists and get role (handles deleted profiles and sets userRole)
+                const { data: profile, error } = await _supabase.from('profiles').select('role').eq('id', session.user.id).single();
+                
+                if (error || !profile) {
+                    // If no profile found, sign out the user and show auth section (handles deleted profiles)
+                    await _supabase.auth.signOut();
+                    document.getElementById('auth-section').classList.remove('hidden');
+                    alert("Account has been deactivated by administrator.");
+                    return;
+                }
+
                 document.getElementById('auth-section').classList.add('hidden');
-                const { data: profile } = await _supabase.from('profiles').select('role').eq('id', session.user.id).single();
-                userRole = profile ? profile.role : 'user';
+                userRole = profile.role;
                 document.getElementById('role-badge').innerText = userRole.replace('_', ' ').toUpperCase();
                 
                 if (userRole !== 'user') {
@@ -278,7 +288,15 @@
 
         function handleDateChange(d) { selectedLogDate = d; document.getElementById('selected-date-title').innerText = "Logs for: " + d; loadLogsByDate(d); }
         async function updateRole(uId, nR, tR) { if (userRole === 'admin' && tR === 'super_admin') return alert("Denied"); await _supabase.from('profiles').update({ role: nR }).eq('id', uId); loadProfiles(); }
-        async function deleteProfile(uId) { if(confirm("Delete?")) { await _supabase.from('profiles').delete().eq('id', uId); loadProfiles(); } }
+        
+        async function deleteProfile(uId) { 
+            if(userRole === 'super_admin' && confirm("Are you sure you want to delete this user's profile and ban them from logging in?")) { 
+                //check user exists before deleting profile to avoid deleting wrong user if id is reused
+                await _supabase.from('profiles').delete().eq('id', uId); 
+                loadProfiles(); 
+            } 
+        }
+
         async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
         async function saveSettings() { 
             if (userRole === 'user') return;
