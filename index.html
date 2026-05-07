@@ -289,16 +289,23 @@
         }
         async function addTelegramUser() { await _supabase.from('telegram_users').insert([{ name: document.getElementById('tgName').value, telegram_id: document.getElementById('tgID').value }]); loadData(); }
         async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
+        
         async function createUser() { 
             const email = document.getElementById('newEmail').value;
             const pass = document.getElementById('newPass').value;
-            const { error } = await _supabase.auth.signUp({ email: email, password: pass }); 
+            const { error } = await _supabase.auth.signUp({ 
+                email: email, 
+                password: pass,
+                options: {
+                    emailRedirectTo: MY_URL
+                }
+            }); 
             if (error) alert(error.message); else alert("Registration successful! Confirmation email sent.");
         }
+
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
         function showPage(p, el) { const isM = (userRole !== 'user'); if (!isM && (p === 'notification' || p === 'register')) return alert("Denied"); document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(p).classList.add('active'); el.classList.add('active'); }
 
-        // Password recovery flow
         _supabase.auth.onAuthStateChange(async (event) => {
             if (event === "PASSWORD_RECOVERY") {
                 const newPass = prompt("Enter your new password:");
