@@ -174,21 +174,16 @@
         async function checkSession() {
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
-                // Check if profile exists and get role (handles deleted profiles and sets userRole)
                 const { data: profile, error } = await _supabase.from('profiles').select('role').eq('id', session.user.id).single();
-                
                 if (error || !profile) {
-                    // If no profile found, sign out the user and show auth section (handles deleted profiles)
                     await _supabase.auth.signOut();
                     document.getElementById('auth-section').classList.remove('hidden');
-                    alert("Account has been deactivated by administrator.");
+                    alert("Account deactivated.");
                     return;
                 }
-
                 document.getElementById('auth-section').classList.add('hidden');
                 userRole = profile.role;
                 document.getElementById('role-badge').innerText = userRole.replace('_', ' ').toUpperCase();
-                
                 if (userRole !== 'user') {
                     document.querySelectorAll('.admin-nav-only').forEach(el => el.style.display = 'block');
                     loadProfiles();
@@ -246,19 +241,31 @@
             const { data: settings } = await _supabase.from('system_settings').select('*').eq('id', activeDeviceId).single();
             if (settings) {
                 const diff = Math.floor((new Date() - new Date(settings.last_ping)) / 1000);
-                document.getElementById('last-ping-text').innerText = diff > 15 ? `Offline (${diff}s ago)` : 'Online Now';
+                const isOffline = diff > 15;
+                document.getElementById('last-ping-text').innerText = isOffline ? `Offline (${diff}s ago)` : 'Online Now';
+                
                 const isManager = (userRole === 'admin' || userRole === 'super_admin');
                 document.getElementById('change-status-btn').disabled = (!isManager || settings.schedule_enabled);
                 document.getElementById('save-settings-btn').disabled = !isManager;
                 document.getElementById('sHour').disabled = !isManager;
                 document.getElementById('eHour').disabled = !isManager;
                 document.getElementById('sEn').disabled = !isManager;
+
                 currentArmed = settings.system_armed;
                 document.getElementById('armed-status').innerText = currentArmed ? "ARMED" : "DISARMED";
                 document.getElementById('armed-status').className = "text-6xl font-black italic mb-8 tracking-tighter " + (currentArmed?"text-green-400":"text-rose-500");
+                
                 const dEl = document.getElementById('door-status-text');
-                dEl.innerText = settings.door_status || "UNKNOWN";
-                dEl.className = "text-6xl font-black italic mb-2 tracking-tighter " + (settings.door_status==="OPEN"?"text-rose-500 animate-pulse":"text-blue-400");
+                
+                // If offline, show "DISCONNECTED" in gray. If online, show actual door status with color (OPEN=red, CLOSED=blue)
+                if (isOffline) {
+                    dEl.innerText = "DISCONNECTED";
+                    dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase text-slate-500";
+                } else {
+                    dEl.innerText = settings.door_status || "UNKNOWN";
+                    dEl.className = "text-6xl font-black italic mb-2 tracking-tighter uppercase " + (settings.door_status === "OPEN" ? "text-rose-500 animate-pulse" : "text-blue-400");
+                }
+                
                 document.getElementById('sHour').value = settings.start_hour;
                 document.getElementById('eHour').value = settings.end_hour;
                 document.getElementById('sEn').checked = settings.schedule_enabled;
@@ -288,15 +295,7 @@
 
         function handleDateChange(d) { selectedLogDate = d; document.getElementById('selected-date-title').innerText = "Logs for: " + d; loadLogsByDate(d); }
         async function updateRole(uId, nR, tR) { if (userRole === 'admin' && tR === 'super_admin') return alert("Denied"); await _supabase.from('profiles').update({ role: nR }).eq('id', uId); loadProfiles(); }
-        
-        async function deleteProfile(uId) { 
-            if(userRole === 'super_admin' && confirm("Are you sure you want to delete this user's profile and ban them from logging in?")) { 
-                //check user exists before deleting profile to avoid deleting wrong user if id is reused
-                await _supabase.from('profiles').delete().eq('id', uId); 
-                loadProfiles(); 
-            } 
-        }
-
+        async function deleteProfile(uId) { if(userRole === 'super_admin' && confirm("Ban user?")) { await _supabase.from('profiles').delete().eq('id', uId); loadProfiles(); } }
         async function toggleAlarm() { if (userRole !== 'user') { await _supabase.from('system_settings').update({ system_armed: !currentArmed }).eq('id', activeDeviceId); loadData(); } }
         async function saveSettings() { 
             if (userRole === 'user') return;
@@ -307,33 +306,26 @@
         }
         async function addTelegramUser() { await _supabase.from('telegram_users').insert([{ name: document.getElementById('tgName').value, telegram_id: document.getElementById('tgID').value }]); loadData(); }
         async function deleteTelegramUser(id) { if(confirm("Remove?")) { await _supabase.from('telegram_users').delete().eq('id', id); loadData(); } }
-        
         async function createUser() { 
-            const email = document.getElementById('newEmail').value;
-            const pass = document.getElementById('newPass').value;
             const { error } = await _supabase.auth.signUp({ 
-                email: email, 
-                password: pass,
-                options: {
-                    emailRedirectTo: MY_URL
-                }
+                email: document.getElementById('newEmail').value, 
+                password: document.getElementById('newPass').value,
+                options: { emailRedirectTo: MY_URL }
             }); 
-            if (error) alert(error.message); else alert("Registration successful! Confirmation email sent.");
+            if (error) alert(error.message); else alert("Confirmation sent.");
         }
-
         async function handleLogout() { await _supabase.auth.signOut(); location.reload(); }
         function showPage(p, el) { const isM = (userRole !== 'user'); if (!isM && (p === 'notification' || p === 'register')) return alert("Denied"); document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(p).classList.add('active'); el.classList.add('active'); }
-
+        
         _supabase.auth.onAuthStateChange(async (event) => {
             if (event === "PASSWORD_RECOVERY") {
-                const newPass = prompt("Enter your new password:");
+                const newPass = prompt("New password:");
                 if (newPass) {
                     const { error } = await _supabase.auth.updateUser({ password: newPass });
-                    if (error) alert(error.message); else { alert("Password updated!"); window.location.href = MY_URL; }
+                    if (error) alert(error.message); else { alert("Updated!"); window.location.href = MY_URL; }
                 }
             }
         });
-
         checkSession();
     </script>
 </body>
